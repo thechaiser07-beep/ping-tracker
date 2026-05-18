@@ -83,9 +83,9 @@
                 </svg>
                 <div class="ring-center">
                     <div class="ring-ml"   id="ring-ml">0</div>
-                    <div class="ring-unit">ml</div>
+                    <div class="ring-unit" id="ring-unit">bottles</div>
                     <div class="ring-pct"  id="ring-pct">0%</div>
-                    <div class="ring-goal" id="ring-goal">/ 2500 ml</div>
+                    <div class="ring-goal" id="ring-goal">/ 4 bottles</div>
                 </div>
             </div>
 
@@ -114,14 +114,28 @@
             <div class="neon-divider"></div>
 
             <div class="section-label">Quick Add</div>
-            <div class="quick-add">
-                <button class="add-btn" data-ml="250"><span>+250</span>ml</button>
-                <button class="add-btn" data-ml="500"><span>+500</span>ml</button>
-                <button class="add-btn" data-ml="750"><span>+750</span>ml</button>
-                <button class="add-btn" data-ml="1000"><span>+1000</span>ml</button>
+            <div class="quick-add" id="quick-add-grid">
+                <button class="add-btn" data-bottles="0.5">
+                    <span>+½</span>
+                    <small class="add-ml" data-for="0.5">250ml</small>
+                </button>
+                <button class="add-btn" data-bottles="1">
+                    <span>+1</span>
+                    <small class="add-ml" data-for="1">500ml</small>
+                </button>
+                <button class="add-btn" data-bottles="1.5">
+                    <span>+1.5</span>
+                    <small class="add-ml" data-for="1.5">750ml</small>
+                </button>
+                <button class="add-btn" data-bottles="2">
+                    <span>+2</span>
+                    <small class="add-ml" data-for="2">1000ml</small>
+                </button>
             </div>
 
-            <div class="section-label">Custom Amount</div>
+            <button class="undo-btn" id="undo-water">− Undo last entry</button>
+
+            <div class="section-label" style="margin-top:14px">Custom Amount</div>
             <div class="custom-row">
                 <input class="cyber-input" id="custom-ml" type="number" min="1" max="5000" placeholder="Enter ml...">
                 <button class="cyber-btn" id="custom-add">ADD</button>
@@ -137,7 +151,6 @@
         <div class="page" id="sleep-page">
             <div class="page-header">
                 <div class="page-title">Sleep</div>
-                <div class="app-date"></div>
             </div>
 
             <!-- Sleep Ring -->
@@ -192,6 +205,12 @@
             <!-- Log form -->
             <div class="sleep-form">
                 <div class="sleep-form-title">LOG SLEEP SESSION</div>
+
+                <div class="time-field" style="margin-bottom:12px">
+                    <label>DATE</label>
+                    <input class="cyber-input" type="date" id="sleep-date">
+                </div>
+
                 <div class="time-row">
                     <div class="time-field">
                         <label>BEDTIME</label>
@@ -202,7 +221,9 @@
                         <input class="cyber-input" type="time" id="waketime" value="07:00">
                     </div>
                 </div>
+
                 <div class="sleep-duration" id="sleep-dur">8h 0m</div>
+
                 <div class="quality-label">SLEEP QUALITY</div>
                 <div class="stars" id="stars">
                     <span class="star active" data-v="1">★</span>
@@ -211,7 +232,11 @@
                     <span class="star active" data-v="4">★</span>
                     <span class="star active" data-v="5">★</span>
                 </div>
-                <button class="cyber-btn purple" id="log-sleep" style="width:100%;padding:13px;font-size:13px;">
+
+                <div class="quality-label">NOTES</div>
+                <textarea class="cyber-input" id="sleep-notes" rows="2" placeholder="How did you sleep?"></textarea>
+
+                <button class="cyber-btn purple" id="log-sleep" style="width:100%;padding:13px;font-size:13px;margin-top:12px;">
                     LOG SLEEP
                 </button>
             </div>
@@ -230,10 +255,25 @@
         <button class="modal-close" id="modal-close">✕</button>
 
         <div class="setting-row">
-            <label>DAILY WATER GOAL (ML)</label>
-            <div style="display:flex;gap:8px">
-                <input class="cyber-input" id="goal-input" type="number" min="500" max="10000" placeholder="2500">
-                <button class="cyber-btn" id="save-goal">SAVE</button>
+            <label>BOTTLE SIZE</label>
+            <div class="preset-row" id="bsize-presets">
+                <button class="preset-btn" data-bsize="330">330ml</button>
+                <button class="preset-btn" data-bsize="500">500ml</button>
+                <button class="preset-btn" data-bsize="600">600ml</button>
+                <button class="preset-btn" data-bsize="750">750ml</button>
+                <button class="preset-btn" data-bsize="1000">1L</button>
+            </div>
+        </div>
+
+        <div class="setting-row" style="margin-top:14px">
+            <label>DAILY GOAL (BOTTLES)</label>
+            <div class="preset-row" id="wgoal-presets">
+                <button class="preset-btn" data-wgoal="2">2</button>
+                <button class="preset-btn" data-wgoal="3">3</button>
+                <button class="preset-btn" data-wgoal="4">4</button>
+                <button class="preset-btn" data-wgoal="5">5</button>
+                <button class="preset-btn" data-wgoal="6">6</button>
+                <button class="preset-btn" data-wgoal="8">8</button>
             </div>
         </div>
 

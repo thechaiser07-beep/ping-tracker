@@ -341,26 +341,54 @@ html, body {
 .empty-state { text-align: center; color: var(--text-dim); font-size: 13px; padding: 28px 0; }
 
 /* ─── QUICK ADD ─── */
-.quick-add { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 16px; }
+.quick-add { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 10px; }
 
 .add-btn {
     background: var(--bg-card);
     border: 0.5px solid var(--border-mid);
     color: var(--text-bright);
-    font-size: 11px; padding: 12px 4px 10px; border-radius: var(--radius-md);
+    font-size: 13px; font-weight: 600; padding: 12px 4px 10px;
+    border-radius: var(--radius-md);
     cursor: pointer; text-align: center; transition: all .15s;
-    user-select: none; -webkit-tap-highlight-color: transparent; line-height: 1.5;
-    font-family: inherit;
+    user-select: none; -webkit-tap-highlight-color: transparent;
+    line-height: 1.4; font-family: inherit;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
 }
 
-.add-btn span { display: block; font-size: 15px; font-weight: 600; color: var(--green); }
-.add-btn:hover, .add-btn:active { background: var(--green-dim); border-color: rgba(6,214,160,.4); }
+.add-btn span { color: var(--green); }
+.add-btn .add-ml { font-size: 10px; font-weight: 400; color: var(--text-dim); }
+.add-btn:hover, .add-btn:active { background: rgba(6,214,160,.1); border-color: rgba(6,214,160,.4); }
 
-/* green-dim for hover (defined via CSS var fallback) */
-.add-btn:hover { background: rgba(6,214,160,.1); }
+/* ─── UNDO BUTTON ─── */
+.undo-btn {
+    width: 100%; margin-bottom: 4px;
+    padding: 9px; border-radius: var(--radius-md);
+    border: 0.5px solid rgba(247,37,133,.3);
+    background: transparent; color: var(--text-dim);
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    transition: all .15s; font-family: inherit;
+    user-select: none;
+}
+.undo-btn:hover:not(:disabled) { border-color: var(--pink); color: var(--pink); }
+.undo-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
 .custom-row { display: flex; gap: 8px; }
 .custom-row .cyber-input { flex: 1; }
+
+/* ─── PRESET BUTTONS (settings) ─── */
+.preset-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+
+.preset-btn {
+    background: transparent;
+    border: 0.5px solid var(--border-mid);
+    color: var(--text-dim);
+    font-size: 12px; font-weight: 500;
+    padding: 5px 12px; border-radius: var(--radius-md);
+    cursor: pointer; transition: all .15s; font-family: inherit;
+}
+
+.preset-btn.active,
+.preset-btn:hover { background: var(--accent-dim); border-color: var(--accent); color: var(--text-bright); }
 
 /* ─── LOG LIST ─── */
 .log-list { display: flex; flex-direction: column; gap: 0; }
@@ -413,7 +441,10 @@ html, body {
 .quality-label {
     font-size: 11px; color: var(--text-dim);
     letter-spacing: 0.04em; margin-bottom: 8px; text-transform: uppercase;
+    margin-top: 4px;
 }
+
+textarea.cyber-input { resize: none; line-height: 1.5; margin-bottom: 4px; }
 
 .stars { display: flex; gap: 6px; margin-bottom: 14px; }
 
