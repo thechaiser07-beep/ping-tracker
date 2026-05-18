@@ -1,14 +1,12 @@
 // ════════════════════════════════════════════════════
-//  AIRTABLE CONFIG — paste your values here
+//  AIRTABLE CONFIG
 // ════════════════════════════════════════════════════
 const AT_TOKEN = 'patXq9n6nrQzhBWU6.cbbc392bbe38f2e5c733f8769bb4e114634396d16f0bbcbc6920c01b5a9fc385';
 const AT_BASE  = 'appQ6ScbAbIclexoQ';
-// ════════════════════════════════════════════════════
-
 const AT_READY = AT_TOKEN !== 'YOUR_PERSONAL_ACCESS_TOKEN';
 const AT_URL   = `https://api.airtable.com/v0/${AT_BASE}`;
 
-// ── Airtable helpers ─────────────────────────────────────────────────────────
+// ── Airtable helpers ──────────────────────────────────────────────────────────
 async function atReq(method, table, idOrQuery = '', body = null) {
     if (!AT_READY) throw new Error('Airtable not configured');
     const url  = `${AT_URL}/${encodeURIComponent(table)}${idOrQuery ? '/' + idOrQuery : ''}`;
@@ -17,12 +15,6 @@ async function atReq(method, table, idOrQuery = '', body = null) {
     const res  = await fetch(url, opts);
     if (!res.ok) { const err = await res.json().catch(()=>{}); throw new Error(err?.error?.message || res.status); }
     return res.json();
-}
-
-async function atFind(table, date) {
-    const q = `?filterByFormula=${encodeURIComponent(`{Date}="${date}"`)}`;
-    const d = await atReq('GET', table, q);
-    return d.records?.[0] || null;
 }
 
 async function atFindSetting(key) {
@@ -47,7 +39,7 @@ async function atDelete(table, recId) {
 // ── Record ID cache ───────────────────────────────────────────────────────────
 const REC = JSON.parse(localStorage.getItem('ping_rec') || '{}');
 function cacheRec(key, id) { REC[key] = id; localStorage.setItem('ping_rec', JSON.stringify(REC)); }
-function cachedId(key) { return REC[key] || null; }
+function cachedId(key)     { return REC[key] || null; }
 
 // ── Sync dot ─────────────────────────────────────────────────────────────────
 function syncDot(state) {
@@ -169,16 +161,29 @@ async function saveSettings(obj) {
 // ════════════════════════════════════════════════════
 //  APP STATE
 // ════════════════════════════════════════════════════
+const NOW = new Date();
 const S = {
-    pin: null,
+    pin:        null,
     waterGoal:  2500,
     waterToday: [],
     sleepLogs:  [],
     today:      todayStr(),
 };
 
+// Chart view state
+let viewWY = NOW.getFullYear(), viewWM = NOW.getMonth() + 1;
+let viewSY = NOW.getFullYear(), viewSM = NOW.getMonth() + 1;
+
+// Persistent monthly caches: date string → data
+const monthWater = JSON.parse(localStorage.getItem('ping_mw') || '{}');
+const monthSleep = JSON.parse(localStorage.getItem('ping_ms') || '{}');
+const loadedMonths = new Set(JSON.parse(localStorage.getItem('ping_lm') || '[]'));
+
 function todayStr() { return new Date().toISOString().slice(0, 10); }
 function hhmm()     { return new Date().toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', hour12:false }); }
+function pad2(n)    { return String(n).padStart(2, '0'); }
+function daysInMonth(y, m) { return new Date(y, m, 0).getDate(); }
+function monthKey(y, m)    { return `${y}-${pad2(m)}`; }
 
 // ════════════════════════════════════════════════════
 //  LAUNCH
@@ -190,10 +195,91 @@ async function enterApp() {
     document.getElementById('app-date').textContent =
         new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'short', day:'numeric' }).toUpperCase();
 
-    updateGoalDisplay();
-    await loadWater();
-    await loadSleep();
-    drawChart();
+    document.getElementById('goal-input').value = S.waterGoal;
+
+    // Load today's water from localStorage first (instant)
+    S.waterToday = JSON.parse(localStorage.getItem('ping_w_' + S.today) || '[]');
+    const todayTotal = S.waterToday.reduce((s, e) => s + e.amount, 0);
+    monthWater[S.today] = todayTotal;
+
+    renderWater();
+    renderWaterStats();
+    renderWaterChart();
+    renderSleepStats();
+    renderSleepPixelGrid();
+
+    // Load sleep logs from localStorage
+    S.sleepLogs = JSON.parse(localStorage.getItem('ping_sleep') || '[]');
+    renderSleepLog();
+
+    // Fetch current month from Airtable in background
+    await loadMonthData(viewWY, viewWM);
+    renderWaterStats();
+    renderWaterChart();
+    renderSleepStats();
+    renderSleepPixelGrid();
+
+    // Rebuild sleep log from freshly loaded monthSleep
+    const logs = Object.entries(monthSleep)
+        .map(([date, v]) => ({ date, ...v }))
+        .sort((a, b) => b.date.localeCompare(a.date));
+    if (logs.length) {
+        S.sleepLogs = logs;
+        localStorage.setItem('ping_sleep', JSON.stringify(S.sleepLogs));
+        renderSleepLog();
+    }
+}
+
+// ════════════════════════════════════════════════════
+//  MONTHLY DATA LOADING
+// ════════════════════════════════════════════════════
+async function loadMonthData(y, m) {
+    const mk = monthKey(y, m);
+    const isCurrentMonth = (y === NOW.getFullYear() && m === NOW.getMonth() + 1);
+
+    if (loadedMonths.has(mk) && !isCurrentMonth) return;
+    if (!AT_READY) return;
+
+    const start   = `${y}-${pad2(m)}-01`;
+    const end     = `${y}-${pad2(m)}-${pad2(daysInMonth(y, m))}`;
+    const formula = encodeURIComponent(`AND({Date}>="${start}",{Date}<="${end}")`);
+
+    try {
+        syncDot('busy');
+        const [wData, sData] = await Promise.all([
+            atReq('GET', 'Water', `?filterByFormula=${formula}`).catch(() => ({ records: [] })),
+            atReq('GET', 'Sleep', `?filterByFormula=${formula}`).catch(() => ({ records: [] }))
+        ]);
+
+        for (const rec of wData.records) {
+            const dt      = rec.fields.Date;
+            const entries = JSON.parse(rec.fields.Entries || '[]');
+            monthWater[dt] = entries.reduce((s, e) => s + e.amount, 0);
+            cacheRec('w_' + dt, rec.id);
+            // Sync today's entries into live state
+            if (dt === S.today) {
+                S.waterToday = entries;
+                localStorage.setItem('ping_w_' + dt, JSON.stringify(entries));
+            }
+        }
+
+        for (const rec of sData.records) {
+            const dt = rec.fields.Date;
+            monthSleep[dt] = {
+                duration: rec.fields.Duration,
+                quality:  rec.fields.Quality,
+                bedtime:  rec.fields.Bedtime,
+                waketime: rec.fields.Waketime,
+            };
+            cacheRec('s_' + dt, rec.id);
+        }
+
+        loadedMonths.add(mk);
+        localStorage.setItem('ping_mw', JSON.stringify(monthWater));
+        localStorage.setItem('ping_ms', JSON.stringify(monthSleep));
+        localStorage.setItem('ping_lm', JSON.stringify([...loadedMonths]));
+        syncDot('ok');
+    } catch { syncDot('err'); }
 }
 
 // ════════════════════════════════════════════════════
@@ -205,66 +291,19 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
         btn.classList.add('active');
         document.getElementById(btn.dataset.tab + '-panel').classList.add('active');
-        if (btn.dataset.tab === 'sleep') setTimeout(drawChart, 60);
+        if (btn.dataset.tab === 'water') setTimeout(renderWaterChart, 60);
+        if (btn.dataset.tab === 'sleep') setTimeout(renderSleepPixelGrid, 60);
     });
 });
 
 // ════════════════════════════════════════════════════
 //  WATER
 // ════════════════════════════════════════════════════
-const CIRC = 2 * Math.PI * 82;
-
-function updateRing() {
-    const total = S.waterToday.reduce((s, e) => s + e.amount, 0);
-    const pct   = Math.min(total / S.waterGoal, 1);
-    const fill  = document.getElementById('ring-fill');
-    fill.style.strokeDashoffset = CIRC * (1 - pct);
-    const done = pct >= 1;
-    fill.style.stroke = done ? '#f72585' : '#06d6a0';
-    fill.style.filter = 'none';
-    document.getElementById('ring-ml').style.color      = 'var(--text-bright)';
-    document.getElementById('ring-ml').style.textShadow = 'none';
-    document.getElementById('ring-ml').textContent  = total;
-    document.getElementById('ring-pct').textContent = Math.round(pct * 100) + '%';
-}
-
-function updateGoalDisplay() {
-    document.getElementById('goal-display').textContent = S.waterGoal;
-    document.getElementById('goal-input').value         = S.waterGoal;
-}
-
-async function loadWater() {
-    const local = JSON.parse(localStorage.getItem('ping_w_' + S.today) || '[]');
-
-    if (AT_READY) {
-        try {
-            syncDot('busy');
-            const recId = cachedId('w_' + S.today);
-            let rec;
-            if (recId) {
-                try { rec = { id: recId, fields: (await atReq('GET', 'Water', recId)).fields }; }
-                catch { rec = await atFind('Water', S.today); }
-            } else {
-                rec = await atFind('Water', S.today);
-            }
-            if (rec) {
-                cacheRec('w_' + S.today, rec.id);
-                S.waterToday = JSON.parse(rec.fields.Entries || '[]');
-                localStorage.setItem('ping_w_' + S.today, JSON.stringify(S.waterToday));
-            } else {
-                S.waterToday = local;
-            }
-            syncDot('ok');
-        } catch { syncDot('err'); S.waterToday = local; }
-    } else {
-        S.waterToday = local;
-    }
-
-    renderWater(); updateRing();
-}
-
 async function saveWater(entries) {
     localStorage.setItem('ping_w_' + S.today, JSON.stringify(entries));
+    monthWater[S.today] = entries.reduce((s, e) => s + e.amount, 0);
+    localStorage.setItem('ping_mw', JSON.stringify(monthWater));
+
     if (!AT_READY) return;
     syncDot('busy');
     try {
@@ -284,7 +323,7 @@ async function addWater(ml) {
     const entry   = { id: Date.now().toString(), amount: +ml, time: hhmm(), ts: Date.now() };
     const entries = [...S.waterToday, entry];
     S.waterToday  = entries;
-    renderWater(); updateRing();
+    renderWater(); renderWaterStats(); renderWaterChart();
     await saveWater(entries);
     toast('+' + ml + ' ml');
 }
@@ -292,7 +331,7 @@ async function addWater(ml) {
 async function delWater(id) {
     const entries = S.waterToday.filter(e => e.id !== id);
     S.waterToday  = entries;
-    renderWater(); updateRing();
+    renderWater(); renderWaterStats(); renderWaterChart();
     await saveWater(entries);
 }
 
@@ -326,6 +365,139 @@ document.getElementById('custom-ml').addEventListener('keydown', e => {
     if (e.key === 'Enter') document.getElementById('custom-add').click();
 });
 
+// ── Water stats ───────────────────────────────────────────────────────────────
+function renderWaterStats() {
+    const todayTotal = S.waterToday.reduce((s, e) => s + e.amount, 0);
+    document.getElementById('stat-water-today').textContent =
+        todayTotal >= 1000 ? (todayTotal / 1000).toFixed(1) + ' L' : todayTotal + ' ml';
+
+    // streak: consecutive days ending today where goal was met
+    let streak = 0;
+    const ref = new Date();
+    for (let i = 0; i < 366; i++) {
+        const key = ref.toISOString().slice(0, 10);
+        const ml  = key === S.today ? todayTotal : (monthWater[key] || 0);
+        if (ml >= S.waterGoal) streak++;
+        else break;
+        ref.setDate(ref.getDate() - 1);
+    }
+    document.getElementById('stat-water-streak').textContent = streak + (streak === 1 ? ' day' : ' days');
+
+    // goal met count in the viewed month
+    const days = daysInMonth(viewWY, viewWM);
+    let met = 0;
+    for (let d = 1; d <= days; d++) {
+        const key = `${viewWY}-${pad2(viewWM)}-${pad2(d)}`;
+        const ml  = key === S.today ? todayTotal : (monthWater[key] || 0);
+        if (ml >= S.waterGoal) met++;
+    }
+    document.getElementById('stat-water-month').textContent = met + (met === 1 ? ' day' : ' days');
+}
+
+// ── Water chart (monthly bar) ─────────────────────────────────────────────────
+function renderWaterChart() {
+    const canvas = document.getElementById('waterChart');
+    if (!canvas) return;
+    const dpr  = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    if (!rect.width) return;
+
+    canvas.width  = rect.width  * dpr;
+    canvas.height = rect.height * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    const W = rect.width, H = rect.height;
+    ctx.clearRect(0, 0, W, H);
+
+    const label = new Date(viewWY, viewWM - 1, 1)
+        .toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
+    document.getElementById('water-month-label').textContent = label;
+
+    const days       = daysInMonth(viewWY, viewWM);
+    const todayTotal = S.waterToday.reduce((s, e) => s + e.amount, 0);
+    const vals       = [];
+    for (let d = 1; d <= days; d++) {
+        const key = `${viewWY}-${pad2(viewWM)}-${pad2(d)}`;
+        vals.push(key === S.today ? todayTotal : (monthWater[key] || 0));
+    }
+
+    const MAX  = Math.max(S.waterGoal * 1.4, ...vals, 500);
+    const pL = 30, pR = 6, pT = 12, pB = 22;
+    const cW = W - pL - pR, cH = H - pT - pB;
+    const slot = cW / days;
+    const bW   = Math.max(slot * 0.72, 2);
+    const FONT = `8px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+
+    // grid lines + y labels
+    [0, S.waterGoal / 2, S.waterGoal].forEach(v => {
+        const y = pT + cH - (v / MAX) * cH;
+        ctx.strokeStyle = 'rgba(42,42,90,.5)'; ctx.setLineDash([3,3]); ctx.lineWidth = 0.8;
+        ctx.beginPath(); ctx.moveTo(pL, y); ctx.lineTo(W - pR, y); ctx.stroke();
+        ctx.setLineDash([]);
+        if (v > 0) {
+            ctx.fillStyle = '#6666aa'; ctx.font = FONT; ctx.textAlign = 'right';
+            ctx.fillText(v >= 1000 ? (v/1000).toFixed(1)+'L' : v, pL - 2, y + 3);
+        }
+    });
+
+    // goal dashed line
+    const goalY = pT + cH - (S.waterGoal / MAX) * cH;
+    ctx.strokeStyle = 'rgba(157,78,221,.5)'; ctx.setLineDash([4,3]); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pL, goalY); ctx.lineTo(W - pR, goalY); ctx.stroke();
+    ctx.setLineDash([]);
+
+    const cy = NOW.getFullYear(), cm = NOW.getMonth() + 1, cd = NOW.getDate();
+
+    vals.forEach((ml, i) => {
+        const x       = pL + i * slot + (slot - bW) / 2;
+        const bH      = (ml / MAX) * cH;
+        const y       = pT + cH - bH;
+        const met     = ml >= S.waterGoal;
+        const isToday = viewWY === cy && viewWM === cm && (i + 1) === cd;
+
+        if (ml > 0) {
+            const grad = ctx.createLinearGradient(x, y, x, pT + cH);
+            if (met) {
+                grad.addColorStop(0, 'rgba(6,214,160,.9)');
+                grad.addColorStop(1, 'rgba(6,214,160,.12)');
+            } else {
+                grad.addColorStop(0, 'rgba(157,78,221,.8)');
+                grad.addColorStop(1, 'rgba(157,78,221,.08)');
+            }
+            ctx.fillStyle = grad; ctx.fillRect(x, y, bW, bH);
+            ctx.fillStyle = met ? '#06d6a0' : '#9d4edd'; ctx.fillRect(x, y, bW, 2);
+        } else {
+            ctx.fillStyle = 'rgba(28,28,62,.8)'; ctx.fillRect(x, pT + cH - 2, bW, 2);
+        }
+
+        if (isToday) {
+            ctx.strokeStyle = 'rgba(240,240,255,.35)'; ctx.lineWidth = 1; ctx.setLineDash([]);
+            ctx.strokeRect(x - 1, pT, bW + 2, cH);
+        }
+
+        // day labels: 1, every 5th, and last
+        if (i === 0 || (i + 1) % 5 === 0 || i === days - 1) {
+            ctx.fillStyle = isToday ? '#c084fc' : '#6666aa';
+            ctx.font = FONT; ctx.textAlign = 'center';
+            ctx.fillText(i + 1, x + bW / 2, H - 5);
+        }
+    });
+}
+
+// ── Month navigation (water) ──────────────────────────────────────────────────
+document.getElementById('water-prev').addEventListener('click', async () => {
+    viewWM--; if (viewWM < 1) { viewWM = 12; viewWY--; }
+    await loadMonthData(viewWY, viewWM);
+    renderWaterStats(); renderWaterChart();
+});
+
+document.getElementById('water-next').addEventListener('click', async () => {
+    if (viewWY >= NOW.getFullYear() && viewWM >= NOW.getMonth() + 1) return;
+    viewWM++; if (viewWM > 12) { viewWM = 1; viewWY++; }
+    await loadMonthData(viewWY, viewWM);
+    renderWaterStats(); renderWaterChart();
+});
+
 // ════════════════════════════════════════════════════
 //  SLEEP
 // ════════════════════════════════════════════════════
@@ -354,32 +526,6 @@ function refreshDur() {
 document.getElementById('bedtime').addEventListener('input',  refreshDur);
 document.getElementById('waketime').addEventListener('input', refreshDur);
 
-async function loadSleep() {
-    const local = JSON.parse(localStorage.getItem('ping_sleep') || '[]');
-
-    if (AT_READY) {
-        try {
-            syncDot('busy');
-            const dates = Array.from({ length: 7 }, (_, i) => {
-                const d = new Date(); d.setDate(d.getDate() - i);
-                return d.toISOString().slice(0, 10);
-            });
-            const recs = await Promise.all(dates.map(dt => atFind('Sleep', dt).catch(() => null)));
-            const logs = recs.filter(Boolean).map(r => {
-                cacheRec('s_' + r.fields.Date, r.id);
-                return { date: r.fields.Date, bedtime: r.fields.Bedtime, waketime: r.fields.Waketime, duration: r.fields.Duration, quality: r.fields.Quality };
-            });
-            S.sleepLogs = logs.sort((a,b) => b.date.localeCompare(a.date));
-            localStorage.setItem('ping_sleep', JSON.stringify(S.sleepLogs));
-            syncDot('ok');
-        } catch { syncDot('err'); S.sleepLogs = local; }
-    } else {
-        S.sleepLogs = local;
-    }
-
-    renderSleep();
-}
-
 document.getElementById('log-sleep').addEventListener('click', async () => {
     const bed  = document.getElementById('bedtime').value;
     const wake = document.getElementById('waketime').value;
@@ -388,11 +534,14 @@ document.getElementById('log-sleep').addEventListener('click', async () => {
     const key   = todayStr();
     const entry = { date: key, bedtime: bed, waketime: wake, duration: +dur.total.toFixed(2), quality: sleepQuality };
 
+    monthSleep[key] = { duration: entry.duration, quality: sleepQuality, bedtime: bed, waketime: wake };
+    localStorage.setItem('ping_ms', JSON.stringify(monthSleep));
+
     const idx = S.sleepLogs.findIndex(l => l.date === key);
     if (idx >= 0) S.sleepLogs[idx] = entry; else S.sleepLogs.unshift(entry);
     S.sleepLogs.sort((a,b) => b.date.localeCompare(a.date));
     localStorage.setItem('ping_sleep', JSON.stringify(S.sleepLogs));
-    renderSleep(); drawChart();
+    renderSleepLog(); renderSleepStats(); renderSleepPixelGrid();
 
     if (AT_READY) {
         syncDot('busy');
@@ -412,10 +561,10 @@ document.getElementById('log-sleep').addEventListener('click', async () => {
     toast('Sleep logged!');
 });
 
-function renderSleep() {
+function renderSleepLog() {
     const el = document.getElementById('sleep-log');
     if (!S.sleepLogs.length) { el.innerHTML = '<div class="empty-state">NO SLEEP LOGGED</div>'; return; }
-    el.innerHTML = S.sleepLogs.slice(0, 7).map(l => {
+    el.innerHTML = S.sleepLogs.slice(0, 10).map(l => {
         const h = Math.floor(l.duration), m = Math.round((l.duration - h) * 60);
         const stars = '★'.repeat(l.quality) + '☆'.repeat(5 - l.quality);
         return `
@@ -429,69 +578,82 @@ function renderSleep() {
     }).join('');
 }
 
-// ════════════════════════════════════════════════════
-//  SLEEP CHART
-// ════════════════════════════════════════════════════
-function drawChart() {
-    const canvas = document.getElementById('sleepChart');
-    const dpr    = window.devicePixelRatio || 1;
-    const rect   = canvas.getBoundingClientRect();
-    canvas.width  = rect.width  * dpr;
-    canvas.height = rect.height * dpr;
-    const ctx = canvas.getContext('2d');
-    ctx.scale(dpr, dpr);
-    const W = rect.width, H = rect.height;
-    ctx.clearRect(0, 0, W, H);
+// ── Sleep stats ───────────────────────────────────────────────────────────────
+function renderSleepStats() {
+    const label = new Date(viewSY, viewSM - 1, 1)
+        .toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
+    document.getElementById('sleep-month-label').textContent = label;
 
-    const days = Array.from({ length: 7 }, (_, i) => {
-        const d = new Date(); d.setDate(d.getDate() - (6 - i));
-        const key = d.toISOString().slice(0, 10);
-        const log = S.sleepLogs.find(l => l.date === key);
-        return { label: d.toLocaleDateString('en-US',{weekday:'short'}).slice(0,3).toUpperCase(), hours: log ? log.duration : 0 };
-    });
+    const days    = daysInMonth(viewSY, viewSM);
+    const entries = [];
+    for (let d = 1; d <= days; d++) {
+        const key = `${viewSY}-${pad2(viewSM)}-${pad2(d)}`;
+        if (monthSleep[key]) entries.push(monthSleep[key]);
+    }
 
-    const pL = 28, pR = 8, pT = 14, pB = 28;
-    const cW = W - pL - pR, cH = H - pT - pB, MAX = 10;
-    const slot = cW / days.length, bW = slot * 0.55;
+    const avgH = entries.length
+        ? entries.reduce((s, e) => s + (e.duration || 0), 0) / entries.length : 0;
+    document.getElementById('stat-sleep-avg').textContent = avgH ? avgH.toFixed(1) + 'h' : '—';
 
-    [0,2,4,6,8].forEach(h => {
-        const y = pT + cH - (h / MAX) * cH;
-        ctx.strokeStyle = 'rgba(42,42,90,.6)'; ctx.lineWidth = 1; ctx.setLineDash([3,3]);
-        ctx.beginPath(); ctx.moveTo(pL, y); ctx.lineTo(W - pR, y); ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.fillStyle = '#6666aa'; ctx.font = "8px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"; ctx.textAlign = 'right';
-        ctx.fillText(h + 'h', pL - 4, y + 3);
-    });
+    // streak: consecutive days with sleep logged ending today
+    let streak = 0;
+    const ref = new Date();
+    for (let i = 0; i < 366; i++) {
+        if (monthSleep[ref.toISOString().slice(0, 10)]) streak++;
+        else break;
+        ref.setDate(ref.getDate() - 1);
+    }
+    document.getElementById('stat-sleep-streak').textContent = streak + (streak === 1 ? ' day' : ' days');
 
-    const recY = pT + cH - (8 / MAX) * cH;
-    ctx.strokeStyle = 'rgba(157,78,221,.25)'; ctx.setLineDash([5,4]);
-    ctx.beginPath(); ctx.moveTo(pL, recY); ctx.lineTo(W - pR, recY); ctx.stroke();
-    ctx.setLineDash([]);
-
-    days.forEach((day, i) => {
-        const x = pL + i * slot + (slot - bW) / 2;
-        const bH = (day.hours / MAX) * cH;
-        const y  = pT + cH - bH;
-
-        if (day.hours > 0) {
-            const grad = ctx.createLinearGradient(x, y, x, pT + cH);
-            grad.addColorStop(0, 'rgba(157,78,221,.8)');
-            grad.addColorStop(1, 'rgba(157,78,221,.1)');
-            ctx.fillStyle = grad; ctx.fillRect(x, y, bW, bH);
-            ctx.fillStyle = '#9d4edd'; ctx.fillRect(x, y, bW, 2);
-            ctx.fillStyle = 'rgba(240,240,255,.6)'; ctx.font = "7px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"; ctx.textAlign = 'center';
-            ctx.fillText(day.hours.toFixed(1) + 'h', x + bW / 2, y - 4);
-        } else {
-            ctx.fillStyle = 'rgba(28,28,62,.6)'; ctx.fillRect(x, pT + cH - 2, bW, 2);
-        }
-
-        ctx.fillStyle = '#6666aa'; ctx.font = "8px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"; ctx.textAlign = 'center';
-        ctx.fillText(day.label, x + bW / 2, H - 8);
-    });
+    const avgQ = entries.length
+        ? entries.reduce((s, e) => s + (e.quality || 0), 0) / entries.length : 0;
+    document.getElementById('stat-sleep-quality').textContent = avgQ ? avgQ.toFixed(1) + ' ★' : '—';
 }
 
-window.addEventListener('resize', () => {
-    if (document.getElementById('sleep-panel').classList.contains('active')) drawChart();
+// ── Sleep pixel grid ──────────────────────────────────────────────────────────
+const QUALITY_COLORS = ['#1c1c3e', '#4a1a6a', '#7b2fbe', '#9d4edd', '#c084fc', '#06d6a0'];
+
+function renderSleepPixelGrid() {
+    const label = new Date(viewSY, viewSM - 1, 1)
+        .toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
+    document.getElementById('sleep-month-label').textContent = label;
+
+    const grid  = document.getElementById('sleep-pixel-grid');
+    const days  = daysInMonth(viewSY, viewSM);
+    const first = new Date(viewSY, viewSM - 1, 1).getDay(); // 0 = Sun
+
+    let html = '';
+    for (let i = 0; i < first; i++) {
+        html += '<div class="pixel-cell" style="background:transparent;pointer-events:none"></div>';
+    }
+
+    for (let d = 1; d <= days; d++) {
+        const key     = `${viewSY}-${pad2(viewSM)}-${pad2(d)}`;
+        const entry   = monthSleep[key];
+        const quality = entry ? Math.min(Math.max(Math.round(entry.quality), 1), 5) : 0;
+        const color   = QUALITY_COLORS[quality];
+        const isToday = key === S.today;
+        const tip     = entry
+            ? `${key}: ${entry.duration?.toFixed(1)}h · quality ${entry.quality}★`
+            : key;
+        html += `<div class="pixel-cell${isToday ? ' today-cell' : ''}" style="background:${color}" title="${tip}"></div>`;
+    }
+
+    grid.innerHTML = html;
+}
+
+// ── Month navigation (sleep) ──────────────────────────────────────────────────
+document.getElementById('sleep-prev').addEventListener('click', async () => {
+    viewSM--; if (viewSM < 1) { viewSM = 12; viewSY--; }
+    await loadMonthData(viewSY, viewSM);
+    renderSleepStats(); renderSleepPixelGrid();
+});
+
+document.getElementById('sleep-next').addEventListener('click', async () => {
+    if (viewSY >= NOW.getFullYear() && viewSM >= NOW.getMonth() + 1) return;
+    viewSM++; if (viewSM > 12) { viewSM = 1; viewSY++; }
+    await loadMonthData(viewSY, viewSM);
+    renderSleepStats(); renderSleepPixelGrid();
 });
 
 // ════════════════════════════════════════════════════
@@ -512,7 +674,8 @@ document.getElementById('save-goal').addEventListener('click', async () => {
     const v = parseInt(document.getElementById('goal-input').value);
     if (!v || v < 500 || v > 10000) { toast('Enter 500–10000', true); return; }
     S.waterGoal = v;
-    updateGoalDisplay(); updateRing();
+    document.getElementById('goal-input').value = v;
+    renderWaterStats(); renderWaterChart();
     await saveSettings({ pinHash: S.pin, waterGoal: v });
     toast('Goal updated!');
 });
@@ -534,15 +697,20 @@ document.getElementById('clear-water').addEventListener('click', async () => {
         setTimeout(() => { btn.textContent = "CLEAR TODAY'S WATER"; btn._confirm = false; }, 3000);
         return;
     }
-    btn._confirm = false;
-    btn.textContent = "CLEAR TODAY'S WATER";
+    btn._confirm = false; btn.textContent = "CLEAR TODAY'S WATER";
     localStorage.removeItem('ping_w_' + S.today);
+    delete monthWater[S.today];
+    localStorage.setItem('ping_mw', JSON.stringify(monthWater));
     const recId = cachedId('w_' + S.today);
     if (recId && AT_READY) {
-        try { await atDelete('Water', recId); delete REC['w_' + S.today]; localStorage.setItem('ping_rec', JSON.stringify(REC)); }
-        catch {}
+        try {
+            await atDelete('Water', recId);
+            delete REC['w_' + S.today];
+            localStorage.setItem('ping_rec', JSON.stringify(REC));
+        } catch {}
     }
-    S.waterToday = []; renderWater(); updateRing();
+    S.waterToday = [];
+    renderWater(); renderWaterStats(); renderWaterChart();
     toast('Today cleared');
 });
 
@@ -556,6 +724,10 @@ function toast(msg, err = false) {
     document.getElementById('toasts').appendChild(el);
     setTimeout(() => el.remove(), 2600);
 }
+
+window.addEventListener('resize', () => {
+    renderWaterChart();
+});
 
 // ════════════════════════════════════════════════════
 //  BOOT

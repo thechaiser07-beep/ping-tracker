@@ -8,7 +8,7 @@
 </head>
 <body>
 
-<!-- ══════════════ PIN SCREEN ══════════════ -->
+<!-- ══ PIN SCREEN ══ -->
 <div id="pin-screen">
     <div class="pin-brand">
         <div class="pin-title">PING</div>
@@ -37,7 +37,7 @@
     </div>
 </div>
 
-<!-- ══════════════ MAIN APP ══════════════ -->
+<!-- ══ MAIN APP ══ -->
 <div id="app">
     <header class="app-header">
         <div>
@@ -48,8 +48,8 @@
     </header>
 
     <nav class="tab-bar">
-        <button class="tab-btn active" data-tab="water">💧 WATER</button>
-        <button class="tab-btn"        data-tab="sleep">🌙 SLEEP</button>
+        <button class="tab-btn active" data-tab="water">💧 Water</button>
+        <button class="tab-btn"        data-tab="sleep">🌙 Sleep</button>
     </nav>
 
     <div class="tab-content">
@@ -57,19 +57,36 @@
         <!-- WATER PANEL -->
         <div class="tab-panel active" id="water-panel">
             <div class="desktop-panel-title">💧 Water</div>
-            <div class="ring-wrapper">
-                <svg class="water-ring-svg" viewBox="0 0 190 190">
-                    <circle class="ring-bg"   cx="95" cy="95" r="82"/>
-                    <circle class="ring-fill" id="ring-fill" cx="95" cy="95" r="82"
-                        stroke-dasharray="515.22" stroke-dashoffset="515.22"/>
-                </svg>
-                <div class="ring-center">
-                    <div class="ring-ml"   id="ring-ml">0</div>
-                    <div class="ring-pct"  id="ring-pct">0%</div>
-                    <div class="ring-goal">/ <span id="goal-display">2500</span> ml</div>
+
+            <!-- Stats -->
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="stat-label">TODAY</div>
+                    <div class="stat-value green" id="stat-water-today">0 ml</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">STREAK</div>
+                    <div class="stat-value accent" id="stat-water-streak">0 days</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">GOAL MET</div>
+                    <div class="stat-value" id="stat-water-month">0 days</div>
                 </div>
             </div>
 
+            <!-- Monthly chart -->
+            <div class="chart-card">
+                <div class="month-nav-row">
+                    <button class="month-nav-btn" id="water-prev">‹</button>
+                    <span class="month-nav-title" id="water-month-label"></span>
+                    <button class="month-nav-btn" id="water-next">›</button>
+                </div>
+                <canvas id="waterChart"></canvas>
+            </div>
+
+            <div class="neon-divider"></div>
+
+            <!-- Quick add -->
             <div class="section-label">Quick Add</div>
             <div class="quick-add">
                 <button class="add-btn" data-ml="250"><span>+250</span>ml</button>
@@ -93,6 +110,46 @@
         <!-- SLEEP PANEL -->
         <div class="tab-panel" id="sleep-panel">
             <div class="desktop-panel-title">🌙 Sleep</div>
+
+            <!-- Stats -->
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="stat-label">AVG HOURS</div>
+                    <div class="stat-value accent" id="stat-sleep-avg">—</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">STREAK</div>
+                    <div class="stat-value green" id="stat-sleep-streak">0 days</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">AVG QUALITY</div>
+                    <div class="stat-value" id="stat-sleep-quality">—</div>
+                </div>
+            </div>
+
+            <!-- Pixel grid -->
+            <div class="chart-card">
+                <div class="month-nav-row">
+                    <button class="month-nav-btn" id="sleep-prev">‹</button>
+                    <span class="month-nav-title" id="sleep-month-label"></span>
+                    <button class="month-nav-btn" id="sleep-next">›</button>
+                </div>
+                <div class="pixel-scroll">
+                    <div class="pixel-grid" id="sleep-pixel-grid"></div>
+                </div>
+                <div class="pixel-legend">
+                    <span class="legend-item"><span class="legend-dot" style="background:#1c1c3e"></span>None</span>
+                    <span class="legend-item"><span class="legend-dot" style="background:#4a1a6a"></span>Poor</span>
+                    <span class="legend-item"><span class="legend-dot" style="background:#7b2fbe"></span>OK</span>
+                    <span class="legend-item"><span class="legend-dot" style="background:#9d4edd"></span>Good</span>
+                    <span class="legend-item"><span class="legend-dot" style="background:#c084fc"></span>Great</span>
+                    <span class="legend-item"><span class="legend-dot" style="background:#06d6a0"></span>Perfect</span>
+                </div>
+            </div>
+
+            <div class="neon-divider"></div>
+
+            <!-- Log form -->
             <div class="sleep-form">
                 <div class="sleep-form-title">LOG SLEEP SESSION</div>
                 <div class="time-row">
@@ -114,14 +171,9 @@
                     <span class="star active" data-v="4">★</span>
                     <span class="star active" data-v="5">★</span>
                 </div>
-                <button class="cyber-btn purple" id="log-sleep" style="width:100%;padding:13px;font-size:.65rem;letter-spacing:.2em;">
+                <button class="cyber-btn purple" id="log-sleep" style="width:100%;padding:13px;font-size:13px;">
                     LOG SLEEP
                 </button>
-            </div>
-
-            <div class="chart-card">
-                <div class="chart-card-title">7-DAY SLEEP HISTORY</div>
-                <canvas id="sleepChart"></canvas>
             </div>
 
             <div class="section-label">Recent Entries</div>
@@ -130,10 +182,10 @@
     </div>
 </div>
 
-<!-- ══════════════ SETTINGS MODAL ══════════════ -->
+<!-- SETTINGS MODAL -->
 <div class="overlay" id="settings-overlay">
     <div class="modal">
-        <div class="modal-title">SETTINGS</div>
+        <div class="modal-title">Settings</div>
         <button class="modal-close" id="modal-close">✕</button>
 
         <div class="setting-row">
@@ -163,7 +215,6 @@
 </div>
 
 <div id="toasts"></div>
-
 <script src="app.js"></script>
 </body>
 </html>
