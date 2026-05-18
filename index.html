@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PING — Sleep & Water</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ══════════════ PIN SCREEN ══════════════ -->
+<div id="pin-screen">
+    <div class="pin-brand">
+        <div class="pin-title">PING</div>
+        <div class="pin-sub">SLEEP &amp; WATER TRACKER</div>
+    </div>
+    <div class="pin-status" id="pin-status">&nbsp;</div>
+    <div class="pin-dots">
+        <div class="pin-dot" id="pd0"></div>
+        <div class="pin-dot" id="pd1"></div>
+        <div class="pin-dot" id="pd2"></div>
+        <div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-pad">
+        <button class="pin-key" data-v="1">1</button>
+        <button class="pin-key" data-v="2">2</button>
+        <button class="pin-key" data-v="3">3</button>
+        <button class="pin-key" data-v="4">4</button>
+        <button class="pin-key" data-v="5">5</button>
+        <button class="pin-key" data-v="6">6</button>
+        <button class="pin-key" data-v="7">7</button>
+        <button class="pin-key" data-v="8">8</button>
+        <button class="pin-key" data-v="9">9</button>
+        <button class="pin-key pin-empty" aria-hidden="true"></button>
+        <button class="pin-key" data-v="0">0</button>
+        <button class="pin-key pin-del" id="pin-del">⌫</button>
+    </div>
+</div>
+
+<!-- ══════════════ MAIN APP ══════════════ -->
+<div id="app">
+    <header class="app-header">
+        <div>
+            <div class="app-logo">PING <span class="sync-dot" id="sync-dot"></span></div>
+            <div class="app-date" id="app-date"></div>
+        </div>
+        <button class="icon-btn" id="settings-btn" title="Settings">⚙</button>
+    </header>
+
+    <nav class="tab-bar">
+        <button class="tab-btn active" data-tab="water">💧 WATER</button>
+        <button class="tab-btn"        data-tab="sleep">🌙 SLEEP</button>
+    </nav>
+
+    <div class="tab-content">
+
+        <!-- WATER PANEL -->
+        <div class="tab-panel active" id="water-panel">
+            <div class="ring-wrapper">
+                <svg class="water-ring-svg" viewBox="0 0 190 190">
+                    <circle class="ring-bg"   cx="95" cy="95" r="82"/>
+                    <circle class="ring-fill" id="ring-fill" cx="95" cy="95" r="82"
+                        stroke-dasharray="515.22" stroke-dashoffset="515.22"/>
+                </svg>
+                <div class="ring-center">
+                    <div class="ring-ml"   id="ring-ml">0</div>
+                    <div class="ring-pct"  id="ring-pct">0%</div>
+                    <div class="ring-goal">/ <span id="goal-display">2500</span> ml</div>
+                </div>
+            </div>
+
+            <div class="section-label">Quick Add</div>
+            <div class="quick-add">
+                <button class="add-btn" data-ml="250"><span>+250</span>ml</button>
+                <button class="add-btn" data-ml="500"><span>+500</span>ml</button>
+                <button class="add-btn" data-ml="750"><span>+750</span>ml</button>
+                <button class="add-btn" data-ml="1000"><span>+1000</span>ml</button>
+            </div>
+
+            <div class="section-label">Custom Amount</div>
+            <div class="custom-row">
+                <input class="cyber-input" id="custom-ml" type="number" min="1" max="5000" placeholder="Enter ml...">
+                <button class="cyber-btn" id="custom-add">ADD</button>
+            </div>
+
+            <div class="neon-divider"></div>
+
+            <div class="section-label">Today's Log</div>
+            <div class="log-list" id="water-log"></div>
+        </div>
+
+        <!-- SLEEP PANEL -->
+        <div class="tab-panel" id="sleep-panel">
+            <div class="sleep-form">
+                <div class="sleep-form-title">LOG SLEEP SESSION</div>
+                <div class="time-row">
+                    <div class="time-field">
+                        <label>BEDTIME</label>
+                        <input class="cyber-input" type="time" id="bedtime" value="23:00">
+                    </div>
+                    <div class="time-field">
+                        <label>WAKE TIME</label>
+                        <input class="cyber-input" type="time" id="waketime" value="07:00">
+                    </div>
+                </div>
+                <div class="sleep-duration" id="sleep-dur">8h 0m</div>
+                <div class="quality-label">SLEEP QUALITY</div>
+                <div class="stars" id="stars">
+                    <span class="star active" data-v="1">★</span>
+                    <span class="star active" data-v="2">★</span>
+                    <span class="star active" data-v="3">★</span>
+                    <span class="star active" data-v="4">★</span>
+                    <span class="star active" data-v="5">★</span>
+                </div>
+                <button class="cyber-btn purple" id="log-sleep" style="width:100%;padding:13px;font-size:.65rem;letter-spacing:.2em;">
+                    LOG SLEEP
+                </button>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-card-title">7-DAY SLEEP HISTORY</div>
+                <canvas id="sleepChart"></canvas>
+            </div>
+
+            <div class="section-label">Recent Entries</div>
+            <div class="log-list" id="sleep-log"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════ SETTINGS MODAL ══════════════ -->
+<div class="overlay" id="settings-overlay">
+    <div class="modal">
+        <div class="modal-title">SETTINGS</div>
+        <button class="modal-close" id="modal-close">✕</button>
+
+        <div class="setting-row">
+            <label>DAILY WATER GOAL (ML)</label>
+            <div style="display:flex;gap:8px">
+                <input class="cyber-input" id="goal-input" type="number" min="500" max="10000" placeholder="2500">
+                <button class="cyber-btn" id="save-goal">SAVE</button>
+            </div>
+        </div>
+
+        <div class="neon-divider"></div>
+
+        <div class="setting-row">
+            <label>CHANGE PIN</label>
+            <div style="display:flex;gap:8px">
+                <input class="cyber-input" id="new-pin" type="password" maxlength="4" inputmode="numeric" placeholder="New 4-digit PIN">
+                <button class="cyber-btn pink" id="save-pin">SET</button>
+            </div>
+        </div>
+
+        <div class="neon-divider"></div>
+
+        <button class="cyber-btn pink" id="clear-water" style="width:100%;padding:12px;">
+            CLEAR TODAY'S WATER
+        </button>
+    </div>
+</div>
+
+<div id="toasts"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
