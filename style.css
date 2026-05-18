@@ -165,7 +165,8 @@ html, body {
 
 #settings-btn { margin: 0 6px 0; width: calc(100% - 12px); }
 
-.nav-icon  { font-size: 17px; line-height: 1; }
+.nav-icon  { display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; flex-shrink: 0; }
+.nav-icon svg { width: 100%; height: 100%; }
 .nav-label { display: none; font-size: 10px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; }
 
 /* ─── MAIN CONTENT ─── */
@@ -446,6 +447,49 @@ html, body {
 
 textarea.cyber-input { resize: none; line-height: 1.5; margin-bottom: 4px; }
 
+/* ─── SLEEP FORM ROWS ─── */
+.sleep-form-top-row { display: flex; gap: 10px; margin-bottom: 12px; }
+
+/* dropdown */
+.cyber-select {
+    -webkit-appearance: none; appearance: none; cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%236666aa' stroke-width='2.5' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center;
+    padding-right: 28px; color-scheme: dark;
+}
+
+/* ─── QUALITY DOTS ─── */
+.q-dots { display: flex; gap: 10px; margin-bottom: 4px; align-items: center; }
+
+.q-dot {
+    width: 12px; height: 12px; border-radius: 50%;
+    border: 1.5px solid var(--border-mid);
+    background: transparent; cursor: pointer;
+    transition: background .12s, border-color .12s;
+    padding: 0; flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.q-dot.active { background: var(--accent); border-color: var(--accent); }
+
+/* ─── SLEEP CHART ─── */
+#sleepChart { width: 100%; height: 140px; display: block; }
+
+.chart-card-title {
+    font-size: 11px; font-weight: 500; color: var(--text-dim);
+    letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px;
+}
+
+/* ─── SLEEP TYPE BADGE (log) ─── */
+.sleep-type-badge {
+    font-size: 10px; font-weight: 500; letter-spacing: 0.04em;
+    padding: 2px 7px; border-radius: 20px;
+    border: 0.5px solid var(--border-mid); color: var(--text-dim);
+    text-transform: uppercase;
+}
+
+.sleep-type-badge.nap { border-color: var(--green); color: var(--green); }
+
 .stars { display: flex; gap: 6px; margin-bottom: 14px; }
 
 .star {
@@ -576,7 +620,7 @@ textarea.cyber-input { resize: none; line-height: 1.5; margin-bottom: 4px; }
 
     #settings-btn { margin: 0 8px 0; width: calc(100% - 16px); }
 
-    .nav-icon  { font-size: 15px; }
+    .nav-icon  { width: 18px; height: 18px; }
     .nav-label { display: block; }
 
     .main-content { padding: 28px 28px 48px; }

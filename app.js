@@ -172,7 +172,6 @@ const S = {
 };
 
 let viewWY = NOW.getFullYear(), viewWM = NOW.getMonth() + 1;
-let viewSY = NOW.getFullYear(), viewSM = NOW.getMonth() + 1;
 
 // date → total ml (water) / date → {duration, quality, ...} (sleep)
 const monthWater  = JSON.parse(localStorage.getItem('ping_mw') || '{}');
@@ -214,9 +213,9 @@ async function enterApp() {
     renderSleepLog();
     updateSleepRing();
     renderSleepStats();
-    renderSleepPixelGrid();
 
     requestAnimationFrame(renderWaterChart);
+    requestAnimationFrame(renderSleepChart);
 
     // Fetch current month from Airtable
     await loadMonthData(viewWY, viewWM);
@@ -227,7 +226,7 @@ async function enterApp() {
     renderWaterChart();
     updateSleepRing();
     renderSleepStats();
-    renderSleepPixelGrid();
+    renderSleepChart();
 
     // Rebuild sleep log from fetched monthSleep
     const logs = Object.entries(monthSleep)
@@ -238,6 +237,7 @@ async function enterApp() {
         localStorage.setItem('ping_sleep', JSON.stringify(S.sleepLogs));
         renderSleepLog();
         updateSleepRing();
+        renderSleepChart();
     }
 }
 
@@ -282,6 +282,7 @@ async function loadMonthData(y, m) {
                 bedtime:  rec.fields.Bedtime,
                 waketime: rec.fields.Waketime,
                 notes:    rec.fields.Notes || '',
+                type:     rec.fields.Type || 'night',
             };
             cacheRec('s_' + dt, rec.id);
         }
@@ -304,6 +305,7 @@ document.querySelectorAll('.nav-btn[data-tab]').forEach(btn => {
         btn.classList.add('active');
         document.getElementById(btn.dataset.tab + '-page').classList.add('active');
         if (btn.dataset.tab === 'water') requestAnimationFrame(renderWaterChart);
+        if (btn.dataset.tab === 'sleep') requestAnimationFrame(renderSleepChart);
     });
 });
 
@@ -386,8 +388,9 @@ function updateRing() {
 const SLEEP_GOAL_H = 8;
 
 function updateSleepRing() {
-    const recent = S.sleepLogs[0]
+    const recent = S.sleepLogs.find(l => l.type !== 'nap')
         || Object.entries(monthSleep)
+            .filter(([, v]) => v.type !== 'nap')
             .map(([date, v]) => ({ date, ...v }))
             .sort((a, b) => b.date.localeCompare(a.date))[0];
 
@@ -657,11 +660,16 @@ document.getElementById('water-next').addEventListener('click', async () => {
 //  SLEEP
 // ════════════════════════════════════════════════════
 let sleepQuality = 5;
+let sleepType = 'night';
 
-document.querySelectorAll('.star').forEach(s => {
-    s.addEventListener('click', () => {
-        sleepQuality = +s.dataset.v;
-        document.querySelectorAll('.star').forEach((x, i) => x.classList.toggle('active', i < sleepQuality));
+document.getElementById('sleep-type').addEventListener('change', e => {
+    sleepType = e.target.value;
+});
+
+document.querySelectorAll('.q-dot').forEach(dot => {
+    dot.addEventListener('click', () => {
+        sleepQuality = +dot.dataset.v;
+        document.querySelectorAll('.q-dot').forEach((d, i) => d.classList.toggle('active', i < sleepQuality));
     });
 });
 
@@ -690,10 +698,10 @@ document.getElementById('log-sleep').addEventListener('click', async () => {
     if (!bed || !wake) { toast('Set both times', true); return; }
 
     const dur   = calcSleep();
-    const entry = { date, bedtime: bed, waketime: wake, duration: +dur.total.toFixed(2), quality: sleepQuality, notes };
+    const entry = { date, bedtime: bed, waketime: wake, duration: +dur.total.toFixed(2), quality: sleepQuality, notes, type: sleepType };
 
     // Replace same-date entry if it exists
-    monthSleep[date] = { duration: entry.duration, quality: sleepQuality, bedtime: bed, waketime: wake, notes };
+    monthSleep[date] = { duration: entry.duration, quality: sleepQuality, bedtime: bed, waketime: wake, notes, type: sleepType };
     localStorage.setItem('ping_ms', JSON.stringify(monthSleep));
 
     const idx = S.sleepLogs.findIndex(l => l.date === date);
@@ -704,12 +712,12 @@ document.getElementById('log-sleep').addEventListener('click', async () => {
     renderSleepLog();
     updateSleepRing();
     renderSleepStats();
-    renderSleepPixelGrid();
+    renderSleepChart();
 
     if (AT_READY) {
         syncDot('busy');
         try {
-            const fields = { Date: date, Bedtime: bed, Waketime: wake, Duration: entry.duration, Quality: sleepQuality, Notes: notes };
+            const fields = { Date: date, Bedtime: bed, Waketime: wake, Duration: entry.duration, Quality: sleepQuality, Notes: notes, Type: sleepType };
             const recId  = cachedId('s_' + date);
             if (recId) {
                 await atUpdate('Sleep', recId, fields);
@@ -735,7 +743,7 @@ async function deleteSleep(date) {
     renderSleepLog();
     updateSleepRing();
     renderSleepStats();
-    renderSleepPixelGrid();
+    renderSleepChart();
 
     const recId = cachedId('s_' + date);
     if (recId && AT_READY) {
@@ -749,13 +757,18 @@ function renderSleepLog() {
     if (!S.sleepLogs.length) { el.innerHTML = '<div class="empty-state">NO SLEEP LOGGED</div>'; return; }
     el.innerHTML = S.sleepLogs.slice(0, 14).map(l => {
         const h     = Math.floor(l.duration), m = Math.round((l.duration - h) * 60);
-        const stars = '★'.repeat(l.quality) + '☆'.repeat(5 - l.quality);
+        const qual  = Math.round(l.quality || 0);
+        const dots  = Array.from({length: 5}, (_, i) =>
+            `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${i < qual ? 'var(--accent)' : 'var(--border-mid)'};margin-right:2px"></span>`
+        ).join('');
+        const isNap = l.type === 'nap';
+        const badge = `<span class="sleep-type-badge${isNap ? ' nap' : ''}">${isNap ? 'NAP' : 'NIGHT'}</span>`;
         const notes = l.notes ? `<div class="sleep-log-notes">${l.notes}</div>` : '';
         return `
             <div class="sleep-log-item">
                 <div class="sleep-log-row">
-                    <span class="sleep-log-date">${l.date}</span>
-                    <span class="sleep-log-stars">${stars}</span>
+                    <span class="sleep-log-date">${l.date} ${badge}</span>
+                    <span style="display:flex;align-items:center;gap:2px">${dots}</span>
                     <button class="log-del" data-date="${l.date}">✕</button>
                 </div>
                 <div class="sleep-log-detail">${l.bedtime} → ${l.waketime} &nbsp;|&nbsp; ${h}h ${m}m</div>
@@ -771,10 +784,6 @@ document.getElementById('sleep-log').addEventListener('click', e => {
 
 // ── Sleep stats ───────────────────────────────────────────────────────────────
 function renderSleepStats() {
-    const label = new Date(viewSY, viewSM - 1, 1)
-        .toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
-    document.getElementById('sleep-month-label').textContent = label;
-
     let streak = 0;
     const ref = new Date();
     for (let i = 0; i < 366; i++) {
@@ -784,60 +793,77 @@ function renderSleepStats() {
     }
     document.getElementById('stat-sleep-streak').textContent = streak + (streak === 1 ? ' day' : ' days');
 
-    const days    = daysInMonth(viewSY, viewSM);
-    const entries = [];
-    for (let d = 1; d <= days; d++) {
-        const key = `${viewSY}-${pad2(viewSM)}-${pad2(d)}`;
-        if (monthSleep[key]) entries.push(monthSleep[key]);
-    }
-    const avgQ = entries.length
-        ? entries.reduce((s, e) => s + (e.quality || 0), 0) / entries.length : 0;
-    document.getElementById('stat-sleep-quality').textContent = avgQ ? avgQ.toFixed(1) + ' ★' : '—';
+    const nightEntries = Object.values(monthSleep).filter(e => e.type !== 'nap');
+    const avgQ = nightEntries.length
+        ? nightEntries.reduce((s, e) => s + (e.quality || 0), 0) / nightEntries.length : 0;
+    document.getElementById('stat-sleep-quality').textContent = avgQ ? avgQ.toFixed(1) : '—';
 }
 
-// ── Sleep pixel grid ──────────────────────────────────────────────────────────
-const QUALITY_COLORS = ['#1c1c3e', '#4a1a6a', '#7b2fbe', '#9d4edd', '#c084fc', '#06d6a0'];
+// ── Sleep chart (last 14 entries) ────────────────────────────────────────────
+function renderSleepChart() {
+    const canvas = document.getElementById('sleepChart');
+    if (!canvas) return;
+    const dpr  = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    if (!rect.width) return;
 
-function renderSleepPixelGrid() {
-    const label = new Date(viewSY, viewSM - 1, 1)
-        .toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
-    document.getElementById('sleep-month-label').textContent = label;
+    canvas.width  = rect.width  * dpr;
+    canvas.height = rect.height * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    const W = rect.width, H = rect.height;
+    ctx.clearRect(0, 0, W, H);
 
-    const grid  = document.getElementById('sleep-pixel-grid');
-    const days  = daysInMonth(viewSY, viewSM);
-    const first = new Date(viewSY, viewSM - 1, 1).getDay();
+    const entries = S.sleepLogs.slice(0, 14).reverse();
+    if (!entries.length) return;
 
-    let html = '';
-    for (let i = 0; i < first; i++) {
-        html += '<div class="pixel-cell" style="background:transparent;pointer-events:none"></div>';
-    }
-    for (let d = 1; d <= days; d++) {
-        const key     = `${viewSY}-${pad2(viewSM)}-${pad2(d)}`;
-        const entry   = monthSleep[key];
-        const quality = entry ? Math.min(Math.max(Math.round(entry.quality), 1), 5) : 0;
-        const color   = QUALITY_COLORS[quality];
-        const isToday = key === S.today;
-        const tip     = entry
-            ? `${key}: ${entry.duration?.toFixed(1)}h · quality ${entry.quality}★${entry.notes ? ' · ' + entry.notes : ''}`
-            : key;
-        html += `<div class="pixel-cell${isToday ? ' today-cell' : ''}" style="background:${color}" title="${tip}"></div>`;
-    }
-    grid.innerHTML = html;
+    const GOAL = 8;
+    const MAX  = Math.max(GOAL * 1.2, ...entries.map(e => e.duration || 0), 4);
+    const pL = 28, pR = 6, pT = 10, pB = 22;
+    const cW = W - pL - pR, cH = H - pT - pB;
+    const n    = entries.length;
+    const slot = cW / n;
+    const bW   = Math.max(slot * 0.72, 3);
+    const FONT = `8px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+
+    [0, GOAL / 2, GOAL].forEach(v => {
+        const y = pT + cH - (v / MAX) * cH;
+        ctx.strokeStyle = 'rgba(42,42,90,.5)'; ctx.setLineDash([3,3]); ctx.lineWidth = 0.8;
+        ctx.beginPath(); ctx.moveTo(pL, y); ctx.lineTo(W - pR, y); ctx.stroke();
+        ctx.setLineDash([]);
+        if (v > 0) {
+            ctx.fillStyle = '#6666aa'; ctx.font = FONT; ctx.textAlign = 'right';
+            ctx.fillText(v + 'h', pL - 2, y + 3);
+        }
+    });
+
+    const goalY = pT + cH - (GOAL / MAX) * cH;
+    ctx.strokeStyle = 'rgba(157,78,221,.5)'; ctx.setLineDash([4,3]); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pL, goalY); ctx.lineTo(W - pR, goalY); ctx.stroke();
+    ctx.setLineDash([]);
+
+    entries.forEach((e, i) => {
+        const dur   = e.duration || 0;
+        const x     = pL + i * slot + (slot - bW) / 2;
+        const bH    = (dur / MAX) * cH;
+        const y     = pT + cH - bH;
+        const isNap = e.type === 'nap';
+        const met   = !isNap && dur >= GOAL;
+
+        if (dur > 0) {
+            const grad = ctx.createLinearGradient(x, y, x, pT + cH);
+            grad.addColorStop(0, isNap ? 'rgba(6,214,160,.8)' : (met ? 'rgba(192,132,252,.8)' : 'rgba(157,78,221,.8)'));
+            grad.addColorStop(1, isNap ? 'rgba(6,214,160,.08)' : 'rgba(157,78,221,.06)');
+            ctx.fillStyle = grad; ctx.fillRect(x, y, bW, bH);
+            ctx.fillStyle = isNap ? '#06d6a0' : (met ? '#c084fc' : '#9d4edd');
+            ctx.fillRect(x, y, bW, 2);
+        }
+
+        const day = e.date ? e.date.slice(8) : '';
+        ctx.fillStyle = '#6666aa'; ctx.font = FONT; ctx.textAlign = 'center';
+        ctx.fillText(day, x + bW / 2, H - 5);
+    });
 }
-
-// ── Month navigation (sleep) ──────────────────────────────────────────────────
-document.getElementById('sleep-prev').addEventListener('click', async () => {
-    viewSM--; if (viewSM < 1) { viewSM = 12; viewSY--; }
-    await loadMonthData(viewSY, viewSM);
-    renderSleepStats(); renderSleepPixelGrid();
-});
-
-document.getElementById('sleep-next').addEventListener('click', async () => {
-    if (viewSY >= NOW.getFullYear() && viewSM >= NOW.getMonth() + 1) return;
-    viewSM++; if (viewSM > 12) { viewSM = 1; viewSY++; }
-    await loadMonthData(viewSY, viewSM);
-    renderSleepStats(); renderSleepPixelGrid();
-});
 
 // ════════════════════════════════════════════════════
 //  SETTINGS
@@ -905,7 +931,7 @@ function toast(msg, err = false) {
     setTimeout(() => el.remove(), 2600);
 }
 
-window.addEventListener('resize', renderWaterChart);
+window.addEventListener('resize', () => { renderWaterChart(); renderSleepChart(); });
 
 // ════════════════════════════════════════════════════
 //  BOOT
