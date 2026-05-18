@@ -419,3 +419,61 @@ html, body {
 ::-webkit-scrollbar { width: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
+
+/* ─── DESKTOP LAYOUT ─── */
+@media (min-width: 768px) {
+    body { align-items: stretch; }
+
+    #app {
+        max-width: 960px;
+        display: none;
+        height: 100%;
+        flex-direction: column;
+    }
+
+    #app.visible { display: flex; }
+
+    .app-header {
+        padding: 16px 28px;
+    }
+
+    .app-logo { font-size: 17px; }
+
+    /* hide tab bar — both panels visible at once */
+    .tab-bar { display: none; }
+
+    .tab-content {
+        display: flex;
+        flex-direction: row;
+        gap: 20px;
+        padding: 24px 28px 32px;
+        overflow-y: auto;
+        align-items: flex-start;
+    }
+
+    /* both panels always visible on desktop */
+    .tab-panel {
+        display: block !important;
+        flex: 1;
+        min-width: 0;
+    }
+
+    /* water panel slightly wider */
+    #water-panel { flex: 1.05; }
+    #sleep-panel { flex: 0.95; }
+
+    /* section headings */
+    .desktop-panel-title {
+        display: block;
+        font-size: 11px; font-weight: 500;
+        color: var(--text-dim); letter-spacing: 0.06em;
+        text-transform: uppercase; margin-bottom: 16px;
+        padding-bottom: 10px;
+        border-bottom: 0.5px solid var(--border-subtle);
+    }
+
+    .ring-wrapper { width: 160px; height: 160px; margin-bottom: 20px; }
+    .ring-ml { font-size: 24px; }
+
+    .modal { width: 360px; }
+}
