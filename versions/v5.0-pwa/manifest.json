@@ -1,0 +1,19 @@
+{
+    "name": "PING — Sleep & Water",
+    "short_name": "PING",
+    "description": "Track your daily sleep and water intake",
+    "start_url": "./index.html",
+    "display": "standalone",
+    "orientation": "portrait-primary",
+    "background_color": "#07071a",
+    "theme_color": "#9d4edd",
+    "categories": ["health", "lifestyle"],
+    "icons": [
+        {
+            "src": "icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ]
+}

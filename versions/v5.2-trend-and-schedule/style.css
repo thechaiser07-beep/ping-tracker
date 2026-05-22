@@ -611,45 +611,6 @@ textarea.cyber-input { resize: none; line-height: 1.5; margin-bottom: 4px; }
     letter-spacing: .04em; min-width: 60px;
 }
 
-/* ─── CAFFEINE TRACKER ─── */
-.caff-quick { display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; margin-bottom: 8px; }
-.caff-btn {
-    background: var(--bg-card); border: 0.5px solid var(--border-mid);
-    color: var(--text-bright); font-size: 11px; font-weight: 600;
-    padding: 9px 4px 7px; border-radius: var(--radius-md); cursor: pointer;
-    text-align: center; font-family: inherit; transition: all .15s;
-    display: flex; flex-direction: column; align-items: center; gap: 2px;
-}
-.caff-btn span  { color: var(--yellow); font-size: 13px; }
-.caff-btn small { font-size: 9px; color: var(--text-dim); font-weight: 400; }
-.caff-btn:hover,
-.caff-btn:active { background: rgba(255,190,11,.08); border-color: rgba(255,190,11,.35); }
-.caff-total-row {
-    display: flex; align-items: center; justify-content: space-between;
-    margin: 6px 0 8px;
-}
-.caff-total-val { font-size: 18px; font-weight: 700; color: var(--yellow); }
-.caff-total-lbl { font-size: 11px; color: var(--text-dim); letter-spacing: .04em; }
-.caff-warning {
-    display: none; font-size: 11px; color: var(--yellow);
-    padding: 7px 10px; background: rgba(255,190,11,.07);
-    border: 0.5px solid rgba(255,190,11,.3);
-    border-radius: var(--radius-md); margin-bottom: 8px; line-height: 1.4;
-}
-.caff-warning.visible { display: block; }
-.caff-log { display: flex; flex-direction: column; gap: 0; margin-top: 4px; }
-.caff-item {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 7px 10px; background: var(--bg-card);
-    border-bottom: 0.5px solid var(--border-subtle); font-size: 12px;
-}
-.caff-item:first-child { border-radius: var(--radius-md) var(--radius-md) 0 0; }
-.caff-item:last-child  { border-radius: 0 0 var(--radius-md) var(--radius-md); border-bottom: none; }
-.caff-item:only-child  { border-radius: var(--radius-md); border-bottom: none; }
-.caff-item-name { color: var(--text-bright); }
-.caff-item-mg   { color: var(--yellow); font-weight: 600; }
-.caff-item-time { color: var(--text-dim); font-size: 10px; }
-
 /* ─── SLEEP SCHEDULE ─── */
 .offset-tag { font-size: 9px; font-weight: 600; padding: 1px 7px; border-radius: 10px; flex-shrink: 0; letter-spacing: .03em; }
 .offset-late  { color: var(--pink);     background: var(--pink-dim); }
@@ -861,25 +822,6 @@ textarea.cyber-input { resize: none; line-height: 1.5; margin-bottom: 4px; }
 .empty-icon  { opacity: .28; }
 .empty-label { font-size: 12px; font-weight: 500; color: var(--text-dim); letter-spacing: .04em; }
 .empty-hint  { font-size: 11px; color: var(--text-dim); opacity: .6; }
-
-/* ─── REPORT MODAL ─── */
-.report-canvas-wrap {
-    width: 100%; overflow: hidden;
-    border-radius: var(--radius-md); margin-top: 6px;
-    background: var(--bg-deep);
-}
-#report-canvas {
-    display: block; width: 100%;
-    aspect-ratio: 340 / 470;
-}
-
-/* green cyber-btn variant */
-.cyber-btn.green {
-    background: rgba(6,214,160,0.12);
-    border-color: rgba(6,214,160,0.5);
-    color: var(--green);
-}
-.cyber-btn.green:hover { background: rgba(6,214,160,0.2); }
 
 /* ─── DESKTOP / WIDE SIDEBAR ─── */
 @media (min-width: 560px) {

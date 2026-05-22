@@ -224,7 +224,6 @@ async function enterApp() {
 
     applyBottleSettings();
     renderQuickAdd();
-    renderCaff();
     renderWater();
     updateRing();
     renderWaterStats();
@@ -316,34 +315,6 @@ async function loadMonthData(y, m) {
 }
 
 // ════════════════════════════════════════════════════
-//  CORRELATION
-// ════════════════════════════════════════════════════
-function calcCorrelation() {
-    const goalMl  = S.wGoal * S.bSize;
-    const goalQ   = [];   // sleep quality on days water goal was met
-    const noGoalQ = [];   // sleep quality on days water goal was missed (but water tracked)
-
-    for (const [date, wml] of Object.entries(monthWater)) {
-        if (!wml || wml <= 0) continue;
-        const sl = monthSleep[date];
-        if (!sl || sl.type === 'nap' || !sl.quality) continue;
-        if (wml >= goalMl) goalQ.push(sl.quality);
-        else               noGoalQ.push(sl.quality);
-    }
-
-    const MIN = 3; // need at least 3 days in each bucket to be meaningful
-    if (goalQ.length < MIN || noGoalQ.length < MIN) return null;
-
-    const avg = arr => arr.reduce((a, b) => a + b, 0) / arr.length;
-    return {
-        goalAvgQ:   avg(goalQ),
-        noGoalAvgQ: avg(noGoalQ),
-        goalDays:   goalQ.length,
-        noGoalDays: noGoalQ.length,
-    };
-}
-
-// ════════════════════════════════════════════════════
 //  DASHBOARD
 // ════════════════════════════════════════════════════
 function renderDashboard() {
@@ -415,29 +386,6 @@ function renderDashboard() {
     document.getElementById('ds-debt').textContent    = debt > 0 ? debt.toFixed(1) + 'h' : '0h';
     document.getElementById('ds-score').textContent   = score !== null ? score + '/100' : '—';
     document.getElementById('ds-caff').textContent    = caffToday + 'mg';
-
-    // Insight card — water/sleep correlation
-    const corr       = calcCorrelation();
-    const insightCard = document.getElementById('insight-card');
-    if (corr) {
-        const diff = corr.goalAvgQ - corr.noGoalAvgQ;
-        let text, sub;
-        if (Math.abs(diff) < 0.15) {
-            text = `Your sleep quality averages ${corr.goalAvgQ.toFixed(1)}/5 on hydrated days — and ${corr.noGoalAvgQ.toFixed(1)}/5 on others.`;
-            sub  = 'Your habits are very consistent — great discipline!';
-        } else if (diff > 0) {
-            text = `On days you hit your water goal, your sleep quality averages ${corr.goalAvgQ.toFixed(1)}/5 — vs ${corr.noGoalAvgQ.toFixed(1)}/5 on other days.`;
-            sub  = `That's ${diff.toFixed(1)} point${diff >= 1.5 ? 's' : ''} better when you stay hydrated 💪`;
-        } else {
-            text = `Sleep quality is ${corr.goalAvgQ.toFixed(1)}/5 on hydrated days vs ${corr.noGoalAvgQ.toFixed(1)}/5 on non-goal days.`;
-            sub  = 'Keep logging — more data will reveal stronger patterns.';
-        }
-        document.getElementById('insight-text').textContent = text;
-        document.getElementById('insight-sub').textContent  = sub;
-        insightCard.style.display = '';
-    } else {
-        insightCard.style.display = 'none';
-    }
 
     // Recent activity
     renderRecentActivity();
@@ -689,63 +637,10 @@ async function deleteWater(id) {
     await saveWater(entries);
 }
 
-// ════════════════════════════════════════════════════
-//  CAFFEINE TRACKER
-// ════════════════════════════════════════════════════
 function getCaffToday() {
     const entries = JSON.parse(localStorage.getItem('ping_caff_' + S.today) || '[]');
     return entries.reduce((s, e) => s + (e.mg || 0), 0);
 }
-
-function logCaff(mg, name) {
-    const entries = JSON.parse(localStorage.getItem('ping_caff_' + S.today) || '[]');
-    entries.push({ id: Date.now().toString(), mg, name, time: hhmm(), ts: Date.now() });
-    localStorage.setItem('ping_caff_' + S.today, JSON.stringify(entries));
-    renderCaff();
-    renderDashboard();
-    toast(`+${mg}mg caffeine`);
-}
-
-function renderCaff() {
-    const entries = JSON.parse(localStorage.getItem('ping_caff_' + S.today) || '[]');
-    const total   = entries.reduce((s, e) => s + (e.mg || 0), 0);
-    document.getElementById('caff-total').textContent = total + 'mg';
-
-    // Cutoff warning: check if any entry is within 6h of target bedtime
-    const sched = getSchedule();
-    let warn = false;
-    if (sched.bed) {
-        const [th, tm] = sched.bed.split(':').map(Number);
-        let cutoff = th * 60 + tm - 360; // 6 hours before bedtime
-        if (cutoff < 0) cutoff += 1440;
-        for (const e of entries) {
-            const now = new Date(e.ts);
-            const entryMins = now.getHours() * 60 + now.getMinutes();
-            if (entryMins >= cutoff) { warn = true; break; }
-        }
-    }
-    document.getElementById('caff-warning').classList.toggle('visible', warn);
-
-    const log = document.getElementById('caff-log');
-    if (!entries.length) { log.innerHTML = ''; return; }
-    log.innerHTML = [...entries].reverse().map(e => `
-        <div class="caff-item">
-            <span class="caff-item-name">${e.name}</span>
-            <span class="caff-item-mg">${e.mg}mg</span>
-            <span class="caff-item-time">${e.time}</span>
-        </div>`).join('');
-}
-
-document.querySelectorAll('.caff-btn[data-mg]').forEach(btn =>
-    btn.addEventListener('click', () => logCaff(parseInt(btn.dataset.mg), btn.dataset.name))
-);
-
-document.getElementById('caff-custom-add').addEventListener('click', () => {
-    const v = parseInt(document.getElementById('caff-custom-mg').value);
-    if (!v || v < 1 || v > 1000) { toast('Enter 1–1000 mg', true); return; }
-    logCaff(v, 'Custom');
-    document.getElementById('caff-custom-mg').value = '';
-});
 
 function refreshWaterUI() {
     renderWater();
@@ -1620,221 +1515,6 @@ document.getElementById('export-csv').addEventListener('click', () => {
     URL.revokeObjectURL(url);
     toast('CSV downloaded!');
 });
-
-// ════════════════════════════════════════════════════
-//  MONTHLY REPORT
-// ════════════════════════════════════════════════════
-function openMonthlyReport() {
-    const y = NOW.getFullYear(), m = NOW.getMonth() + 1;
-    const days  = daysInMonth(y, m);
-    const goalMl = S.wGoal * S.bSize;
-
-    let waterDays = 0, waterTotal = 0;
-    let sleepNights = 0, sleepDurTotal = 0, sleepQualTotal = 0, sleepScoreTotal = 0;
-
-    for (let d = 1; d <= days; d++) {
-        const key = `${y}-${pad2(m)}-${pad2(d)}`;
-        const wml = key === S.today ? todayMl() : (monthWater[key] || 0);
-        if (wml >= goalMl) waterDays++;
-        waterTotal += wml;
-
-        const sl = monthSleep[key];
-        if (sl && sl.type !== 'nap' && sl.duration) {
-            sleepNights++;
-            sleepDurTotal  += sl.duration;
-            sleepQualTotal += (sl.quality || 0);
-            const sc = calcSleepScore(sl);
-            if (sc !== null) sleepScoreTotal += sc;
-        }
-    }
-
-    const monthName = new Date(y, m - 1, 1)
-        .toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-
-    // Current streaks
-    let wStreak = 0;
-    const wr = new Date();
-    for (let i = 0; i < 366; i++) {
-        const key = wr.toISOString().slice(0, 10);
-        const ml  = key === S.today ? todayMl() : (monthWater[key] || 0);
-        if (ml >= goalMl) wStreak++; else break;
-        wr.setDate(wr.getDate() - 1);
-    }
-    let sStreak = 0;
-    const sr = new Date();
-    for (let i = 0; i < 366; i++) {
-        const e = monthSleep[sr.toISOString().slice(0, 10)];
-        if (e && e.type !== 'nap') sStreak++; else break;
-        sr.setDate(sr.getDate() - 1);
-    }
-
-    const corr = calcCorrelation();
-    const debt = calcSleepDebt7();
-
-    const reportData = {
-        monthName, days, waterDays,
-        avgWater:      days      > 0 ? waterTotal     / days      : 0,
-        sleepNights,
-        avgSleepDur:   sleepNights > 0 ? sleepDurTotal  / sleepNights : 0,
-        avgSleepQual:  sleepNights > 0 ? sleepQualTotal / sleepNights : 0,
-        avgSleepScore: sleepNights > 0 ? sleepScoreTotal/ sleepNights : 0,
-        wStreak, sStreak, debt, corr,
-    };
-
-    // Show overlay first so canvas has layout dimensions, then draw
-    document.getElementById('report-overlay').classList.add('visible');
-    requestAnimationFrame(() => renderReportCanvas(reportData));
-}
-
-function renderReportCanvas({ monthName, days, waterDays, avgWater,
-    sleepNights, avgSleepDur, avgSleepQual, avgSleepScore,
-    wStreak, sStreak, debt, corr }) {
-
-    const canvas = document.getElementById('report-canvas');
-    const DPR    = 2; // fixed 2× for crisp PNG download
-    const W = 340, H = 470;
-    canvas.width  = W * DPR;
-    canvas.height = H * DPR;
-    const ctx = canvas.getContext('2d');
-    ctx.scale(DPR, DPR);
-
-    const FONT = '"Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif';
-    const fmtH  = v => {
-        if (!v) return '—';
-        const h = Math.floor(v), m = Math.round((v - h) * 60);
-        return m ? `${h}h ${m}m` : `${h}h`;
-    };
-    const fmtMl = v => !v ? '—'
-        : v >= 1000 ? (v / 1000).toFixed(1) + 'L'
-        : Math.round(v) + 'ml';
-
-    // ── Background ──
-    ctx.fillStyle = '#07071a'; ctx.fillRect(0, 0, W, H);
-    const bgGrad = ctx.createLinearGradient(0, 0, W, H);
-    bgGrad.addColorStop(0, 'rgba(157,78,221,0.09)');
-    bgGrad.addColorStop(1, 'rgba(6,214,160,0.04)');
-    ctx.fillStyle = bgGrad; ctx.fillRect(0, 0, W, H);
-
-    // Border
-    ctx.strokeStyle = 'rgba(157,78,221,0.3)'; ctx.lineWidth = 1;
-    ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
-
-    // ── Header ──
-    ctx.fillStyle = 'rgba(157,78,221,0.18)'; ctx.fillRect(0, 0, W, 54);
-    ctx.fillStyle = '#c084fc'; ctx.font = `bold 10px ${FONT}`;
-    ctx.textAlign = 'center';
-    ctx.fillText('PING  ·  MONTHLY REPORT', W / 2, 19);
-    ctx.fillStyle = '#f0f0ff'; ctx.font = `bold 21px ${FONT}`;
-    ctx.fillText(monthName.toUpperCase(), W / 2, 44);
-
-    // ── Layout helpers ──
-    let y = 66;
-    const pad = 22, ROW = 18;
-
-    const hLine = () => {
-        ctx.strokeStyle = 'rgba(42,42,90,0.8)'; ctx.lineWidth = 0.5;
-        ctx.setLineDash([4, 4]);
-        ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(W - pad, y); ctx.stroke();
-        ctx.setLineDash([]);
-        y += 11;
-    };
-
-    const secHead = (icon, title, color) => {
-        ctx.fillStyle = color; ctx.font = `bold 9px ${FONT}`; ctx.textAlign = 'left';
-        ctx.fillText(`${icon}  ${title}`, pad, y);
-        y += 14;
-    };
-
-    const statRow = (label, value, valColor = '#f0f0ff') => {
-        ctx.fillStyle = 'rgba(136,136,187,0.85)'; ctx.font = `9px ${FONT}`; ctx.textAlign = 'left';
-        ctx.fillText(label, pad + 6, y);
-        ctx.fillStyle = valColor; ctx.font = `bold 9px ${FONT}`; ctx.textAlign = 'right';
-        ctx.fillText(value, W - pad, y);
-        y += ROW;
-    };
-
-    // ── WATER ──
-    secHead('💧', 'WATER', '#06d6a0');
-    statRow('Goal days met',  `${waterDays} / ${days}  (${Math.round(waterDays / days * 100)}%)`, '#06d6a0');
-    statRow('Average per day', fmtMl(avgWater));
-    y += 4; hLine();
-
-    // ── SLEEP ──
-    secHead('🌙', 'SLEEP', '#9d4edd');
-    if (sleepNights > 0) {
-        statRow('Nights logged', `${sleepNights} / ${days}`);
-        statRow('Avg duration',  fmtH(avgSleepDur),                    '#c084fc');
-        statRow('Avg quality',   `${avgSleepQual.toFixed(1)} / 5`);
-        statRow('Avg score',     `${Math.round(avgSleepScore)} / 100`);
-    } else {
-        ctx.fillStyle = 'rgba(136,136,187,0.5)'; ctx.font = `9px ${FONT}`; ctx.textAlign = 'left';
-        ctx.fillText('No nights logged this month', pad + 6, y); y += ROW;
-    }
-    y += 4; hLine();
-
-    // ── STREAKS ──
-    secHead('🔥', 'STREAKS & TRENDS', '#f72585');
-    statRow('Water streak',     `${wStreak} day${wStreak !== 1 ? 's' : ''}`, '#06d6a0');
-    statRow('Sleep streak',     `${sStreak} day${sStreak !== 1 ? 's' : ''}`, '#c084fc');
-    statRow('Sleep debt (7d)',  debt > 0 ? fmtH(debt) : '0h  ✓', debt > 2 ? '#ffbe0b' : '#06d6a0');
-    y += 4;
-
-    // ── INSIGHT ──
-    if (corr && corr.goalAvgQ !== null && corr.noGoalAvgQ !== null) {
-        hLine();
-        secHead('💡', 'INSIGHT', '#f72585');
-        const diff = corr.goalAvgQ - corr.noGoalAvgQ;
-        const txt  = Math.abs(diff) < 0.15
-            ? `Sleep quality is consistent at ~${corr.goalAvgQ.toFixed(1)}/5 regardless of hydration — great habits!`
-            : diff > 0
-                ? `Hydrated days → sleep quality ${corr.goalAvgQ.toFixed(1)}/5 vs ${corr.noGoalAvgQ.toFixed(1)}/5 on non-goal days  (+${diff.toFixed(1)} pts)`
-                : `Sleep quality ${corr.goalAvgQ.toFixed(1)}/5 on goal days vs ${corr.noGoalAvgQ.toFixed(1)}/5 on other days.`;
-
-        ctx.fillStyle = '#c0c0e8'; ctx.font = `9px ${FONT}`; ctx.textAlign = 'left';
-        const maxLineW = W - pad * 2 - 6;
-        const words = txt.split(' ');
-        let line = '';
-        for (const word of words) {
-            const test = line + word + ' ';
-            if (ctx.measureText(test).width > maxLineW && line) {
-                ctx.fillText(line.trim(), pad + 6, y);
-                line = word + ' '; y += 14;
-            } else {
-                line = test;
-            }
-        }
-        if (line.trim()) { ctx.fillText(line.trim(), pad + 6, y); y += 14; }
-        y += 4;
-    }
-
-    // ── Footer ──
-    ctx.fillStyle = 'rgba(102,102,170,0.45)'; ctx.font = `8px ${FONT}`; ctx.textAlign = 'center';
-    ctx.fillText('Generated by PING — Sleep & Water Tracker', W / 2, H - 11);
-}
-
-function downloadReport() {
-    const canvas = document.getElementById('report-canvas');
-    const a = document.createElement('a');
-    a.href     = canvas.toDataURL('image/png');
-    a.download = `ping-report-${S.today.slice(0, 7)}.png`;
-    a.click();
-    toast('Report saved!');
-}
-
-document.getElementById('open-report').addEventListener('click', () => {
-    document.getElementById('settings-overlay').classList.remove('visible');
-    openMonthlyReport();
-});
-
-document.getElementById('report-close').addEventListener('click', () =>
-    document.getElementById('report-overlay').classList.remove('visible'));
-
-document.getElementById('report-overlay').addEventListener('click', e => {
-    if (e.target === document.getElementById('report-overlay'))
-        document.getElementById('report-overlay').classList.remove('visible');
-});
-
-document.getElementById('download-report').addEventListener('click', downloadReport);
 
 // ════════════════════════════════════════════════════
 //  SETTINGS

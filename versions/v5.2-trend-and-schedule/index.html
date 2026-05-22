@@ -301,26 +301,6 @@
 
             <div class="neon-divider"></div>
 
-            <div class="section-label">☕ Caffeine</div>
-            <div class="caff-quick">
-                <button class="caff-btn" data-mg="63"  data-name="Espresso"><span>☕</span><small>63mg</small></button>
-                <button class="caff-btn" data-mg="100" data-name="Coffee">  <span>☕</span><small>100mg</small></button>
-                <button class="caff-btn" data-mg="50"  data-name="Tea">     <span>🍵</span><small>50mg</small></button>
-                <button class="caff-btn" data-mg="80"  data-name="Energy">  <span>⚡</span><small>80mg</small></button>
-            </div>
-            <div class="custom-row" style="margin-bottom:8px">
-                <input class="cyber-input" id="caff-custom-mg" type="number" min="1" max="1000" placeholder="Custom mg…">
-                <button class="cyber-btn" id="caff-custom-add">ADD</button>
-            </div>
-            <div class="caff-total-row">
-                <span class="caff-total-lbl">TODAY'S CAFFEINE</span>
-                <span class="caff-total-val" id="caff-total">0mg</span>
-            </div>
-            <div class="caff-warning" id="caff-warning">⚠️ You've had caffeine within 6 hours of your target bedtime — this may affect sleep quality.</div>
-            <div class="caff-log" id="caff-log"></div>
-
-            <div class="neon-divider"></div>
-
             <div class="section-label">Today's Log</div>
             <div class="log-list" id="water-log"></div>
         </div>
@@ -552,30 +532,12 @@
 
         <div class="neon-divider"></div>
 
-        <button class="cyber-btn" id="open-report" style="width:100%;padding:12px;margin-bottom:8px;">
-            📊 MONTHLY REPORT
-        </button>
-
         <button class="cyber-btn" id="export-csv" style="width:100%;padding:12px;margin-bottom:8px;">
             EXPORT DATA AS CSV
         </button>
 
         <button class="cyber-btn pink" id="clear-water" style="width:100%;padding:12px;">
             CLEAR TODAY'S WATER
-        </button>
-    </div>
-</div>
-
-<!-- REPORT MODAL -->
-<div class="overlay" id="report-overlay">
-    <div class="modal">
-        <div class="modal-title">Monthly Report</div>
-        <button class="modal-close" id="report-close">✕</button>
-        <div class="report-canvas-wrap">
-            <canvas id="report-canvas"></canvas>
-        </div>
-        <button class="cyber-btn green" id="download-report" style="width:100%;padding:12px;margin-top:12px">
-            ↓ DOWNLOAD AS PNG
         </button>
     </div>
 </div>

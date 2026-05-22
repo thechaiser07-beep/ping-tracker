@@ -54,16 +54,7 @@
         </div>
 
         <nav class="sidebar-nav">
-            <button class="nav-btn active" data-tab="dashboard">
-                <span class="nav-icon">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/>
-                        <rect x="3" y="14" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/>
-                    </svg>
-                </span>
-                <span class="nav-label">Dashboard</span>
-            </button>
-            <button class="nav-btn" data-tab="water">
+            <button class="nav-btn active" data-tab="water">
                 <span class="nav-icon">
                     <!-- drop -->
                     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -102,90 +93,8 @@
     <!-- ── MAIN CONTENT ── -->
     <div class="main-content">
 
-        <!-- DASHBOARD PAGE -->
-        <div class="page active" id="dashboard-page">
-            <div class="page-header">
-                <div class="page-title">Today</div>
-                <div class="app-date" id="dash-date"></div>
-            </div>
-
-            <!-- Dual rings -->
-            <div class="dash-rings-row">
-                <div class="dash-ring-col">
-                    <div class="dash-ring-wrap-sm">
-                        <svg class="water-ring-svg" viewBox="0 0 200 200">
-                            <circle class="ring-bg"   cx="100" cy="100" r="82"/>
-                            <circle class="ring-fill" id="dash-water-fill" cx="100" cy="100" r="82"
-                                stroke-dasharray="515.22" stroke-dashoffset="515.22"/>
-                        </svg>
-                        <div class="ring-center">
-                            <div class="ring-ml"   id="dash-water-ml">0</div>
-                            <div class="ring-unit">bottles</div>
-                            <div class="ring-pct"  id="dash-water-pct">0%</div>
-                        </div>
-                    </div>
-                    <div class="dash-ring-lbl">💧 Water</div>
-                </div>
-                <div class="dash-ring-col">
-                    <div class="dash-ring-wrap-sm">
-                        <svg class="water-ring-svg" viewBox="0 0 200 200">
-                            <circle class="ring-bg" cx="100" cy="100" r="82"/>
-                            <circle class="ring-fill ring-fill-sleep" id="dash-sleep-fill" cx="100" cy="100" r="82"
-                                stroke-dasharray="515.22" stroke-dashoffset="515.22"/>
-                        </svg>
-                        <div class="ring-center">
-                            <div class="ring-ml"   id="dash-sleep-hours">—</div>
-                            <div class="ring-unit">last night</div>
-                            <div class="ring-pct"  id="dash-sleep-pct">0%</div>
-                        </div>
-                    </div>
-                    <div class="dash-ring-lbl">🌙 Sleep</div>
-                </div>
-            </div>
-
-            <!-- Quick add water -->
-            <div class="dash-quick" id="dash-quick-add"></div>
-
-            <!-- Stats strip -->
-            <div class="stats-strip" id="dash-stats-strip">
-                <div class="strip-stat">
-                    <div class="strip-val green" id="ds-wstreak">—</div>
-                    <div class="strip-lbl">Water Streak</div>
-                </div>
-                <div class="strip-stat">
-                    <div class="strip-val accent" id="ds-sstreak">—</div>
-                    <div class="strip-lbl">Sleep Streak</div>
-                </div>
-                <div class="strip-stat">
-                    <div class="strip-val yellow" id="ds-debt">—</div>
-                    <div class="strip-lbl">Sleep Debt</div>
-                </div>
-                <div class="strip-stat">
-                    <div class="strip-val" id="ds-score">—</div>
-                    <div class="strip-lbl">Sleep Score</div>
-                </div>
-                <div class="strip-stat">
-                    <div class="strip-val pink" id="ds-caff">0mg</div>
-                    <div class="strip-lbl">Caffeine</div>
-                </div>
-            </div>
-
-            <!-- Insight card (populated by JS) -->
-            <div class="insight-card" id="insight-card" style="display:none">
-                <div class="insight-header">💡 Insight</div>
-                <div class="insight-text" id="insight-text"></div>
-                <div class="insight-sub"  id="insight-sub"></div>
-            </div>
-
-            <!-- Recent activity -->
-            <div class="recent-card">
-                <div class="recent-title">Recent Activity</div>
-                <div id="recent-list"></div>
-            </div>
-        </div>
-
         <!-- WATER PAGE -->
-        <div class="page" id="water-page">
+        <div class="page active" id="water-page">
             <div class="page-header">
                 <div class="page-title">Water</div>
                 <div class="app-date" id="app-date"></div>
@@ -298,26 +207,6 @@
                 <input class="cyber-input" id="custom-ml" type="number" min="1" max="5000" placeholder="Enter ml...">
                 <button class="cyber-btn" id="custom-add">ADD</button>
             </div>
-
-            <div class="neon-divider"></div>
-
-            <div class="section-label">☕ Caffeine</div>
-            <div class="caff-quick">
-                <button class="caff-btn" data-mg="63"  data-name="Espresso"><span>☕</span><small>63mg</small></button>
-                <button class="caff-btn" data-mg="100" data-name="Coffee">  <span>☕</span><small>100mg</small></button>
-                <button class="caff-btn" data-mg="50"  data-name="Tea">     <span>🍵</span><small>50mg</small></button>
-                <button class="caff-btn" data-mg="80"  data-name="Energy">  <span>⚡</span><small>80mg</small></button>
-            </div>
-            <div class="custom-row" style="margin-bottom:8px">
-                <input class="cyber-input" id="caff-custom-mg" type="number" min="1" max="1000" placeholder="Custom mg…">
-                <button class="cyber-btn" id="caff-custom-add">ADD</button>
-            </div>
-            <div class="caff-total-row">
-                <span class="caff-total-lbl">TODAY'S CAFFEINE</span>
-                <span class="caff-total-val" id="caff-total">0mg</span>
-            </div>
-            <div class="caff-warning" id="caff-warning">⚠️ You've had caffeine within 6 hours of your target bedtime — this may affect sleep quality.</div>
-            <div class="caff-log" id="caff-log"></div>
 
             <div class="neon-divider"></div>
 
@@ -520,23 +409,6 @@
         <div class="neon-divider"></div>
 
         <div class="setting-row">
-            <label>SLEEP SCHEDULE</label>
-            <div class="time-grid">
-                <div>
-                    <div style="font-size:10px;color:var(--text-dim);margin-bottom:4px">TARGET BEDTIME</div>
-                    <input class="cyber-input" type="time" id="target-bed" value="23:00">
-                </div>
-                <div>
-                    <div style="font-size:10px;color:var(--text-dim);margin-bottom:4px">TARGET WAKE</div>
-                    <input class="cyber-input" type="time" id="target-wake" value="07:00">
-                </div>
-            </div>
-            <button class="cyber-btn" id="save-schedule" style="width:100%;padding:8px;margin-top:8px;font-size:12px">SAVE SCHEDULE</button>
-        </div>
-
-        <div class="neon-divider"></div>
-
-        <div class="setting-row">
             <label>HYDRATION REMINDERS</label>
             <div class="reminder-row">
                 <label>Remind me every</label>
@@ -552,30 +424,12 @@
 
         <div class="neon-divider"></div>
 
-        <button class="cyber-btn" id="open-report" style="width:100%;padding:12px;margin-bottom:8px;">
-            📊 MONTHLY REPORT
-        </button>
-
         <button class="cyber-btn" id="export-csv" style="width:100%;padding:12px;margin-bottom:8px;">
             EXPORT DATA AS CSV
         </button>
 
         <button class="cyber-btn pink" id="clear-water" style="width:100%;padding:12px;">
             CLEAR TODAY'S WATER
-        </button>
-    </div>
-</div>
-
-<!-- REPORT MODAL -->
-<div class="overlay" id="report-overlay">
-    <div class="modal">
-        <div class="modal-title">Monthly Report</div>
-        <button class="modal-close" id="report-close">✕</button>
-        <div class="report-canvas-wrap">
-            <canvas id="report-canvas"></canvas>
-        </div>
-        <button class="cyber-btn green" id="download-report" style="width:100%;padding:12px;margin-top:12px">
-            ↓ DOWNLOAD AS PNG
         </button>
     </div>
 </div>
