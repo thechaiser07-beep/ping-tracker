@@ -27,7 +27,7 @@ Rename "Table 1" to **`Water`**, then set up these fields:
 
 | Field Name | Field Type     |
 |------------|---------------|
-| `Date`     | Single line text ← rename the default "Name" field to this |
+| `Date`     | **Date** ← rename the default "Name" field to this |
 | `Entries`  | Long text      |
 
 Delete any other default fields Airtable adds.
@@ -40,7 +40,7 @@ Click **"+"** to add a new table, name it **`Sleep`**, then add:
 
 | Field Name | Field Type       |
 |------------|-----------------|
-| `Date`     | Single line text ← rename "Name" |
+| `Date`     | **Date** ← rename "Name" |
 | `Bedtime`  | Single line text |
 | `Waketime` | Single line text |
 | `Duration` | Number (allow decimals) |
@@ -57,7 +57,7 @@ Add another table, name it **`Caffeine`**, then add:
 
 | Field Name | Field Type       |
 |------------|-----------------|
-| `Date`     | Single line text ← rename "Name" |
+| `Date`     | **Date** ← rename "Name" |
 | `Total`    | Number (integer) |
 | `Entries`  | Long text        |
 
@@ -69,7 +69,7 @@ Add another table, name it **`Mood`**, then add:
 
 | Field Name | Field Type       |
 |------------|-----------------|
-| `Date`     | Single line text ← rename "Name" |
+| `Date`     | **Date** ← rename "Name" |
 | `Score`    | Number (integer) |
 | `Time`     | Single line text |
 

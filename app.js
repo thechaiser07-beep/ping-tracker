@@ -320,8 +320,14 @@ async function loadMonthData(y, m) {
             atReq('GET', 'Mood',     `?filterByFormula=${formula}`).catch(() => ({ records: [] }))
         ]);
 
+        // atDate: normalise Airtable Date field → YYYY-MM-DD
+        // Works whether the field is "Single line text" or the native "Date" type
+        // (Date type returns full ISO string like "2024-01-15T00:00:00.000Z")
+        const atDate = v => (v || '').slice(0, 10);
+
         for (const rec of wData.records) {
-            const dt      = rec.fields.Date;
+            const dt      = atDate(rec.fields.Date);
+            if (!dt) continue;
             const entries = JSON.parse(rec.fields.Entries || '[]');
             // support both {ml} and legacy {amount}
             monthWater[dt] = entries.reduce((s, e) => s + (e.ml ?? e.amount ?? 0), 0);
@@ -333,7 +339,8 @@ async function loadMonthData(y, m) {
         }
 
         for (const rec of sData.records) {
-            const dt = rec.fields.Date;
+            const dt = atDate(rec.fields.Date);
+            if (!dt) continue;
             monthSleep[dt] = {
                 duration: rec.fields.Duration,
                 quality:  rec.fields.Quality,
@@ -351,7 +358,8 @@ async function loadMonthData(y, m) {
         }
 
         for (const rec of cData.records) {
-            const dt      = rec.fields.Date;
+            const dt      = atDate(rec.fields.Date);
+            if (!dt) continue;
             const entries = JSON.parse(rec.fields.Entries || '[]');
             monthCaff[dt] = { total: rec.fields.Total || 0, entries };
             cacheRec('c_' + dt, rec.id);
@@ -359,7 +367,8 @@ async function loadMonthData(y, m) {
         }
 
         for (const rec of mData.records) {
-            const dt = rec.fields.Date;
+            const dt = atDate(rec.fields.Date);
+            if (!dt) continue;
             moodData[dt] = { score: rec.fields.Score, time: rec.fields.Time || '', ts: 0 };
             cacheRec('m_' + dt, rec.id);
         }
