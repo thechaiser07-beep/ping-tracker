@@ -255,7 +255,11 @@
 
             <!-- Sleep chart -->
             <div class="chart-card" style="margin-top:16px">
-                <div class="chart-card-title">LAST 14 NIGHTS</div>
+                <div class="month-nav-row">
+                    <button class="month-nav-btn" id="sleep-prev">‹</button>
+                    <span class="month-nav-title" id="sleep-month-label"></span>
+                    <button class="month-nav-btn" id="sleep-next">›</button>
+                </div>
                 <canvas id="sleepChart"></canvas>
             </div>
 
@@ -302,6 +306,18 @@
                 <button class="cyber-btn pink" id="save-pin">SET</button>
             </div>
         </div>
+
+        <div class="neon-divider"></div>
+
+        <div class="setting-row">
+            <label>AIRTABLE TOKEN</label>
+            <input class="cyber-input" id="at-token" type="password" placeholder="pat…" autocomplete="off">
+        </div>
+        <div class="setting-row" style="margin-top:8px">
+            <label>AIRTABLE BASE ID</label>
+            <input class="cyber-input" id="at-base" placeholder="app…" autocomplete="off">
+        </div>
+        <button class="cyber-btn" id="save-airtable" style="width:100%;padding:10px;margin-top:4px">SAVE AIRTABLE CONFIG</button>
 
         <div class="neon-divider"></div>
 

@@ -1,15 +1,15 @@
 // ════════════════════════════════════════════════════
-//  AIRTABLE CONFIG
+//  AIRTABLE CONFIG  (stored in localStorage, not in code)
 // ════════════════════════════════════════════════════
-const AT_TOKEN = 'patXq9n6nrQzhBWU6.cbbc392bbe38f2e5c733f8769bb4e114634396d16f0bbcbc6920c01b5a9fc385';
-const AT_BASE  = 'appQ6ScbAbIclexoQ';
-const AT_READY = AT_TOKEN !== 'YOUR_PERSONAL_ACCESS_TOKEN';
-const AT_URL   = `https://api.airtable.com/v0/${AT_BASE}`;
+let AT_TOKEN = localStorage.getItem('ping_at_token') || '';
+let AT_BASE  = localStorage.getItem('ping_at_base')  || '';
+const AT_READY = () => !!(AT_TOKEN && AT_BASE);
+const AT_URL   = () => `https://api.airtable.com/v0/${AT_BASE}`;
 
 // ── Airtable helpers ──────────────────────────────────────────────────────────
 async function atReq(method, table, idOrQuery = '', body = null) {
-    if (!AT_READY) throw new Error('Airtable not configured');
-    const url  = `${AT_URL}/${encodeURIComponent(table)}${idOrQuery ? '/' + idOrQuery : ''}`;
+    if (!AT_READY()) throw new Error('Airtable not configured');
+    const url  = `${AT_URL()}/${encodeURIComponent(table)}${idOrQuery ? '/' + idOrQuery : ''}`;
     const opts = { method, headers: { Authorization: `Bearer ${AT_TOKEN}`, 'Content-Type': 'application/json' } };
     if (body) opts.body = JSON.stringify(body);
     const res  = await fetch(url, opts);
@@ -69,7 +69,7 @@ function pinDots(n, err = false) {
 async function bootPIN() {
     let saved = localStorage.getItem('ping_pin');
 
-    if (!saved && AT_READY) {
+    if (!saved && AT_READY()) {
         try {
             syncDot('busy');
             const rec = await atFindSetting('config');
@@ -97,8 +97,6 @@ async function bootPIN() {
 document.querySelectorAll('.pin-key[data-v]').forEach(k => {
     k.addEventListener('click', async () => {
         if (pinInput.length >= 4) return;
-        k.classList.add('active');
-        setTimeout(() => k.classList.remove('active'), 120);
         pinInput += k.dataset.v;
         pinDots(pinInput.length);
         if (pinInput.length === 4) await submitPIN();
@@ -143,7 +141,7 @@ async function persistPIN(hash) {
 }
 
 async function saveSettings(obj) {
-    if (!AT_READY) return;
+    if (!AT_READY()) return;
     const value = JSON.stringify(obj);
     const recId = cachedId('settings');
     try {
@@ -172,6 +170,7 @@ const S = {
 };
 
 let viewWY = NOW.getFullYear(), viewWM = NOW.getMonth() + 1;
+let viewSY = NOW.getFullYear(), viewSM = NOW.getMonth() + 1;
 
 // date → total ml (water) / date → {duration, quality, ...} (sleep)
 const monthWater  = JSON.parse(localStorage.getItem('ping_mw') || '{}');
@@ -249,7 +248,7 @@ async function loadMonthData(y, m) {
     const isCurrentMonth = (y === NOW.getFullYear() && m === NOW.getMonth() + 1);
 
     if (loadedMonths.has(mk) && !isCurrentMonth) return;
-    if (!AT_READY) return;
+    if (!AT_READY()) return;
 
     const start   = `${y}-${pad2(m)}-01`;
     const end     = `${y}-${pad2(m)}-${pad2(daysInMonth(y, m))}`;
@@ -424,7 +423,7 @@ async function saveWater(entries) {
     monthWater[S.today] = total;
     localStorage.setItem('ping_mw', JSON.stringify(monthWater));
 
-    if (!AT_READY) return;
+    if (!AT_READY()) return;
     syncDot('busy');
     try {
         const payload = { Date: S.today, Entries: JSON.stringify(entries) };
@@ -714,7 +713,7 @@ document.getElementById('log-sleep').addEventListener('click', async () => {
     renderSleepStats();
     renderSleepChart();
 
-    if (AT_READY) {
+    if (AT_READY()) {
         syncDot('busy');
         try {
             const fields = { Date: date, Bedtime: bed, Waketime: wake, Duration: entry.duration, Quality: sleepQuality, Notes: notes, Type: sleepType };
@@ -729,8 +728,13 @@ document.getElementById('log-sleep').addEventListener('click', async () => {
         } catch { syncDot('err'); }
     }
 
-    // Clear notes after logging
+    // Reset form
     document.getElementById('sleep-notes').value = '';
+    document.getElementById('sleep-date').value  = S.today;
+    sleepQuality = 5;
+    sleepType    = 'night';
+    document.getElementById('sleep-type').value = 'night';
+    document.querySelectorAll('.q-dot').forEach((d, i) => d.classList.toggle('active', i < sleepQuality));
     toast('Sleep logged!');
 });
 
@@ -746,7 +750,7 @@ async function deleteSleep(date) {
     renderSleepChart();
 
     const recId = cachedId('s_' + date);
-    if (recId && AT_READY) {
+    if (recId && AT_READY()) {
         try { await atDelete('Sleep', recId); delete REC['s_' + date]; localStorage.setItem('ping_rec', JSON.stringify(REC)); }
         catch {}
     }
@@ -784,10 +788,13 @@ document.getElementById('sleep-log').addEventListener('click', e => {
 
 // ── Sleep stats ───────────────────────────────────────────────────────────────
 function renderSleepStats() {
+    // streak: consecutive days ending today with a night sleep entry (naps excluded)
     let streak = 0;
     const ref = new Date();
     for (let i = 0; i < 366; i++) {
-        if (monthSleep[ref.toISOString().slice(0, 10)]) streak++;
+        const key   = ref.toISOString().slice(0, 10);
+        const entry = monthSleep[key];
+        if (entry && entry.type !== 'nap') streak++;
         else break;
         ref.setDate(ref.getDate() - 1);
     }
@@ -799,7 +806,7 @@ function renderSleepStats() {
     document.getElementById('stat-sleep-quality').textContent = avgQ ? avgQ.toFixed(1) : '—';
 }
 
-// ── Sleep chart (last 14 entries) ────────────────────────────────────────────
+// ── Sleep chart (monthly view) ────────────────────────────────────────────────
 function renderSleepChart() {
     const canvas = document.getElementById('sleepChart');
     if (!canvas) return;
@@ -814,16 +821,24 @@ function renderSleepChart() {
     const W = rect.width, H = rect.height;
     ctx.clearRect(0, 0, W, H);
 
-    const entries = S.sleepLogs.slice(0, 14).reverse();
-    if (!entries.length) return;
+    const label = new Date(viewSY, viewSM - 1, 1)
+        .toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
+    document.getElementById('sleep-month-label').textContent = label;
 
+    const days = daysInMonth(viewSY, viewSM);
     const GOAL = 8;
-    const MAX  = Math.max(GOAL * 1.2, ...entries.map(e => e.duration || 0), 4);
+    const vals = [], types = [];
+    for (let d = 1; d <= days; d++) {
+        const key   = `${viewSY}-${pad2(viewSM)}-${pad2(d)}`;
+        const entry = monthSleep[key];
+        vals.push(entry?.duration || 0);
+        types.push(entry?.type || 'night');
+    }
+
+    const MAX  = Math.max(GOAL * 1.2, ...vals, 4);
     const pL = 28, pR = 6, pT = 10, pB = 22;
     const cW = W - pL - pR, cH = H - pT - pB;
-    const n    = entries.length;
-    const slot = cW / n;
-    const bW   = Math.max(slot * 0.72, 3);
+    const slot = cW / days, bW = Math.max(slot * 0.72, 2);
     const FONT = `8px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
 
     [0, GOAL / 2, GOAL].forEach(v => {
@@ -842,13 +857,15 @@ function renderSleepChart() {
     ctx.beginPath(); ctx.moveTo(pL, goalY); ctx.lineTo(W - pR, goalY); ctx.stroke();
     ctx.setLineDash([]);
 
-    entries.forEach((e, i) => {
-        const dur   = e.duration || 0;
-        const x     = pL + i * slot + (slot - bW) / 2;
-        const bH    = (dur / MAX) * cH;
-        const y     = pT + cH - bH;
-        const isNap = e.type === 'nap';
-        const met   = !isNap && dur >= GOAL;
+    const cy = NOW.getFullYear(), cm = NOW.getMonth() + 1, cd = NOW.getDate();
+
+    vals.forEach((dur, i) => {
+        const x       = pL + i * slot + (slot - bW) / 2;
+        const bH      = (dur / MAX) * cH;
+        const y       = pT + cH - bH;
+        const isNap   = types[i] === 'nap';
+        const met     = !isNap && dur >= GOAL;
+        const isToday = viewSY === cy && viewSM === cm && (i + 1) === cd;
 
         if (dur > 0) {
             const grad = ctx.createLinearGradient(x, y, x, pT + cH);
@@ -857,19 +874,43 @@ function renderSleepChart() {
             ctx.fillStyle = grad; ctx.fillRect(x, y, bW, bH);
             ctx.fillStyle = isNap ? '#06d6a0' : (met ? '#c084fc' : '#9d4edd');
             ctx.fillRect(x, y, bW, 2);
+        } else {
+            ctx.fillStyle = 'rgba(28,28,62,.8)'; ctx.fillRect(x, pT + cH - 2, bW, 2);
         }
 
-        const day = e.date ? e.date.slice(8) : '';
-        ctx.fillStyle = '#6666aa'; ctx.font = FONT; ctx.textAlign = 'center';
-        ctx.fillText(day, x + bW / 2, H - 5);
+        if (isToday) {
+            ctx.strokeStyle = 'rgba(240,240,255,.3)'; ctx.lineWidth = 1; ctx.setLineDash([]);
+            ctx.strokeRect(x - 1, pT, bW + 2, cH);
+        }
+        if (i === 0 || (i + 1) % 5 === 0 || i === days - 1) {
+            ctx.fillStyle = isToday ? '#c084fc' : '#6666aa';
+            ctx.font = FONT; ctx.textAlign = 'center';
+            ctx.fillText(i + 1, x + bW / 2, H - 5);
+        }
     });
 }
+
+// ── Month navigation (sleep) ──────────────────────────────────────────────────
+document.getElementById('sleep-prev').addEventListener('click', async () => {
+    viewSM--; if (viewSM < 1) { viewSM = 12; viewSY--; }
+    await loadMonthData(viewSY, viewSM);
+    renderSleepStats(); renderSleepChart();
+});
+
+document.getElementById('sleep-next').addEventListener('click', async () => {
+    if (viewSY >= NOW.getFullYear() && viewSM >= NOW.getMonth() + 1) return;
+    viewSM++; if (viewSM > 12) { viewSM = 1; viewSY++; }
+    await loadMonthData(viewSY, viewSM);
+    renderSleepStats(); renderSleepChart();
+});
 
 // ════════════════════════════════════════════════════
 //  SETTINGS
 // ════════════════════════════════════════════════════
 document.getElementById('settings-btn').addEventListener('click', () => {
-    applyBottleSettings(); // refresh active states
+    applyBottleSettings();
+    document.getElementById('at-token').value = AT_TOKEN;
+    document.getElementById('at-base').value  = AT_BASE;
     document.getElementById('settings-overlay').classList.add('visible');
 });
 
@@ -889,6 +930,17 @@ document.getElementById('save-pin').addEventListener('click', async () => {
     toast('PIN updated!');
 });
 
+document.getElementById('save-airtable').addEventListener('click', () => {
+    const token = document.getElementById('at-token').value.trim();
+    const base  = document.getElementById('at-base').value.trim();
+    if (!token || !base) { toast('Enter both token and base ID', true); return; }
+    AT_TOKEN = token;
+    AT_BASE  = base;
+    localStorage.setItem('ping_at_token', AT_TOKEN);
+    localStorage.setItem('ping_at_base',  AT_BASE);
+    toast('Airtable config saved!');
+});
+
 document.getElementById('clear-water').addEventListener('click', async () => {
     document.getElementById('settings-overlay').classList.remove('visible');
     const btn = document.getElementById('clear-water');
@@ -903,7 +955,7 @@ document.getElementById('clear-water').addEventListener('click', async () => {
     delete monthWater[S.today];
     localStorage.setItem('ping_mw', JSON.stringify(monthWater));
     const recId = cachedId('w_' + S.today);
-    if (recId && AT_READY) {
+    if (recId && AT_READY()) {
         try {
             await atDelete('Water', recId);
             delete REC['w_' + S.today];

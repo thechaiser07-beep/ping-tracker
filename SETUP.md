@@ -45,6 +45,8 @@ Click **"+"** to add a new table, name it **`Sleep`**, then add:
 | `Waketime` | Single line text |
 | `Duration` | Number (allow decimals) |
 | `Quality`  | Number           |
+| `Notes`    | Long text        |
+| `Type`     | Single line text |
 
 ---
 
@@ -84,23 +86,13 @@ Add another table, name it **`Settings`**, then add:
 
 ---
 
-## Step 6 — Paste Into the App
+## Step 6 — Enter Your Credentials in the App
 
-Open `index.html` in any text editor (Notepad, VS Code, etc.) and find these two lines near the bottom:
+Open `index.html` in your browser, set your PIN, then open **Settings** (the sliders icon in the sidebar).
 
-```js
-const AT_TOKEN = 'YOUR_PERSONAL_ACCESS_TOKEN';
-const AT_BASE  = 'YOUR_BASE_ID';
-```
+Scroll down to the **AIRTABLE TOKEN** and **AIRTABLE BASE ID** fields, paste your values from Steps 4 and 5, then click **SAVE AIRTABLE CONFIG**.
 
-Replace them with your real values:
-
-```js
-const AT_TOKEN = 'patAbc123...';   // your token from Step 4
-const AT_BASE  = 'appXXXXXXXX';   // your base ID from Step 5
-```
-
-Save the file.
+Your credentials are stored in your browser's local storage — they never need to go in the code.
 
 ---
 
@@ -109,10 +101,10 @@ Save the file.
 Open `index.html` in Chrome, Edge, or Firefox.
 
 - First launch: set your 4-digit PIN
-- The small dot next to "PING" in the header shows sync status:
-  - **Cyan glow** = synced to Airtable
-  - **Yellow pulse** = saving...
-  - **Pink** = offline (data saved locally, will sync next time)
+- The small dot next to "PING" in the sidebar shows sync status:
+  - **Green** = synced to Airtable
+  - **Yellow pulse** = saving…
+  - **Pink** = sync error (data is safe locally, will retry next save)
 
 ---
 

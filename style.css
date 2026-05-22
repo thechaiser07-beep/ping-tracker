@@ -87,7 +87,8 @@ html, body {
     display: flex; align-items: center; justify-content: center;
 }
 
-.pin-key:active      { background: var(--accent-dim); border-color: var(--accent); }
+.pin-key:active,
+.pin-key.active      { background: var(--accent-dim); border-color: var(--accent); }
 .pin-key.pin-del     { color: var(--text-dim); font-size: 18px; }
 .pin-key.pin-empty   { visibility: hidden; pointer-events: none; }
 
