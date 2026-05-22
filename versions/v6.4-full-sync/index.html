@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PING — Sleep & Water</title>
+    <link rel="stylesheet"  href="style.css">
+    <link rel="manifest"    href="manifest.json">
+    <link rel="icon"        href="icon.svg" type="image/svg+xml">
+    <meta name="theme-color"             content="#9d4edd">
+    <meta name="apple-mobile-web-app-capable"          content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title"            content="PING">
+</head>
+<body>
+
+<!-- ══ PIN SCREEN ══ -->
+<div id="pin-screen">
+    <div class="pin-brand">
+        <div class="pin-title">PING</div>
+        <div class="pin-sub">SLEEP &amp; WATER TRACKER</div>
+    </div>
+    <div class="pin-status" id="pin-status">&nbsp;</div>
+    <div class="pin-dots">
+        <div class="pin-dot" id="pd0"></div>
+        <div class="pin-dot" id="pd1"></div>
+        <div class="pin-dot" id="pd2"></div>
+        <div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-pad">
+        <button class="pin-key" data-v="1">1</button>
+        <button class="pin-key" data-v="2">2</button>
+        <button class="pin-key" data-v="3">3</button>
+        <button class="pin-key" data-v="4">4</button>
+        <button class="pin-key" data-v="5">5</button>
+        <button class="pin-key" data-v="6">6</button>
+        <button class="pin-key" data-v="7">7</button>
+        <button class="pin-key" data-v="8">8</button>
+        <button class="pin-key" data-v="9">9</button>
+        <button class="pin-key pin-empty" aria-hidden="true"></button>
+        <button class="pin-key" data-v="0">0</button>
+        <button class="pin-key pin-del" id="pin-del">⌫</button>
+    </div>
+</div>
+
+<!-- ══ MAIN APP ══ -->
+<div id="app">
+
+    <!-- Mobile sidebar helpers -->
+    <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+    <button id="menu-toggle" class="menu-toggle" aria-label="Open menu">☰</button>
+
+    <!-- ── SIDEBAR ── -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="sidebar-logo">PING</div>
+            <span class="sync-dot" id="sync-dot"></span>
+        </div>
+
+        <nav class="sidebar-nav">
+            <button class="nav-btn active" data-tab="dashboard">
+                <span class="nav-icon">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/>
+                        <rect x="3" y="14" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/>
+                    </svg>
+                </span>
+                <span class="nav-label">Dashboard</span>
+            </button>
+            <button class="nav-btn" data-tab="water">
+                <span class="nav-icon">
+                    <!-- drop -->
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2L5.5 13A7 7 0 1 0 18.5 13L12 2z"/>
+                    </svg>
+                </span>
+                <span class="nav-label">Water</span>
+            </button>
+            <button class="nav-btn" data-tab="sleep">
+                <span class="nav-icon">
+                    <!-- crescent -->
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
+                </span>
+                <span class="nav-label">Sleep</span>
+            </button>
+        </nav>
+
+        <button class="nav-btn" id="settings-btn">
+            <span class="nav-icon">
+                <!-- sliders -->
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+                    <line x1="4" y1="6" x2="20" y2="6"/>
+                    <line x1="4" y1="12" x2="20" y2="12"/>
+                    <line x1="4" y1="18" x2="20" y2="18"/>
+                    <circle cx="8"  cy="6"  r="2.2" fill="currentColor" stroke="none"/>
+                    <circle cx="16" cy="12" r="2.2" fill="currentColor" stroke="none"/>
+                    <circle cx="10" cy="18" r="2.2" fill="currentColor" stroke="none"/>
+                </svg>
+            </span>
+            <span class="nav-label">Settings</span>
+        </button>
+    </aside>
+
+    <!-- ── MAIN CONTENT ── -->
+    <div class="main-content">
+
+        <!-- DASHBOARD PAGE -->
+        <div class="page active" id="dashboard-page">
+            <div class="page-header">
+                <div class="page-title">Today</div>
+                <div class="app-date" id="dash-date"></div>
+            </div>
+
+            <!-- Dual rings -->
+            <div class="dash-rings-row">
+                <div class="dash-ring-col">
+                    <div class="dash-ring-wrap-sm">
+                        <svg class="water-ring-svg" viewBox="0 0 200 200">
+                            <circle class="ring-bg"   cx="100" cy="100" r="82"/>
+                            <circle class="ring-fill" id="dash-water-fill" cx="100" cy="100" r="82"
+                                stroke-dasharray="515.22" stroke-dashoffset="515.22"/>
+                        </svg>
+                        <div class="ring-center">
+                            <div class="ring-ml"   id="dash-water-ml">0</div>
+                            <div class="ring-unit">bottles</div>
+                            <div class="ring-pct"  id="dash-water-pct">0%</div>
+                        </div>
+                    </div>
+                    <div class="dash-ring-lbl">💧 Water</div>
+                </div>
+                <div class="dash-ring-col">
+                    <div class="dash-ring-wrap-sm">
+                        <svg class="water-ring-svg" viewBox="0 0 200 200">
+                            <circle class="ring-bg" cx="100" cy="100" r="82"/>
+                            <circle class="ring-fill ring-fill-sleep" id="dash-sleep-fill" cx="100" cy="100" r="82"
+                                stroke-dasharray="515.22" stroke-dashoffset="515.22"/>
+                        </svg>
+                        <div class="ring-center">
+                            <div class="ring-ml"   id="dash-sleep-hours">—</div>
+                            <div class="ring-unit">last night</div>
+                            <div class="ring-pct"  id="dash-sleep-pct">0%</div>
+                        </div>
+                    </div>
+                    <div class="dash-ring-lbl">🌙 Sleep</div>
+                </div>
+            </div>
+
+            <!-- Quick add water -->
+            <div class="dash-quick" id="dash-quick-add"></div>
+
+            <!-- Stats strip -->
+            <div class="stats-strip" id="dash-stats-strip">
+                <div class="strip-stat">
+                    <div class="strip-val green" id="ds-wstreak">—</div>
+                    <div class="strip-lbl">Water Streak</div>
+                </div>
+                <div class="strip-stat">
+                    <div class="strip-val accent" id="ds-sstreak">—</div>
+                    <div class="strip-lbl">Sleep Streak</div>
+                </div>
+                <div class="strip-stat">
+                    <div class="strip-val yellow" id="ds-debt">—</div>
+                    <div class="strip-lbl">Sleep Debt</div>
+                </div>
+                <div class="strip-stat">
+                    <div class="strip-val" id="ds-score">—</div>
+                    <div class="strip-lbl">Sleep Score</div>
+                </div>
+                <div class="strip-stat">
+                    <div class="strip-val pink" id="ds-caff">0mg</div>
+                    <div class="strip-lbl">Caffeine</div>
+                </div>
+            </div>
+
+            <!-- Bedtime countdown -->
+            <div class="countdown-card" id="bedtime-countdown" style="display:none">
+                <span class="countdown-icon">🌙</span>
+                <span class="countdown-text" id="countdown-text">Bedtime soon</span>
+            </div>
+
+            <!-- Mood log -->
+            <div class="mood-card">
+                <div class="mood-label">TODAY'S MOOD</div>
+                <div class="mood-picker" id="mood-picker">
+                    <button class="mood-btn" data-score="1" title="Rough">😴</button>
+                    <button class="mood-btn" data-score="2" title="Meh">😐</button>
+                    <button class="mood-btn" data-score="3" title="OK">🙂</button>
+                    <button class="mood-btn" data-score="4" title="Good">😊</button>
+                    <button class="mood-btn" data-score="5" title="Great">🌟</button>
+                </div>
+                <div class="mood-saved" id="mood-saved" style="display:none"></div>
+            </div>
+
+            <!-- Insight card (populated by JS) -->
+            <div class="insight-card" id="insight-card" style="display:none">
+                <div class="insight-header">💡 Insight</div>
+                <div class="insight-text" id="insight-text"></div>
+                <div class="insight-sub"  id="insight-sub"></div>
+            </div>
+
+            <!-- Sleep coaching tips -->
+            <div class="coaching-card" id="coaching-card" style="display:none">
+                <div class="coaching-header">🎯 Coaching Tips</div>
+                <div class="coaching-list" id="coaching-list"></div>
+            </div>
+
+            <!-- Weekly summary button -->
+            <button class="cyber-btn" id="open-weekly" style="width:100%;padding:10px;margin-bottom:4px;font-size:12px;letter-spacing:.05em">📊 WEEKLY SUMMARY</button>
+
+            <!-- Recent activity -->
+            <div class="recent-card">
+                <div class="recent-title">Recent Activity</div>
+                <div id="recent-list"></div>
+            </div>
+        </div>
+
+        <!-- WATER PAGE -->
+        <div class="page" id="water-page">
+            <div class="page-header">
+                <div class="page-title">Water</div>
+                <div class="app-date" id="app-date"></div>
+            </div>
+
+            <!-- Ring -->
+            <div class="ring-wrapper">
+                <svg class="water-ring-svg" viewBox="0 0 200 200">
+                    <circle class="ring-bg"   cx="100" cy="100" r="82"/>
+                    <circle class="ring-fill" id="ring-fill" cx="100" cy="100" r="82"
+                        stroke-dasharray="515.22" stroke-dashoffset="515.22"/>
+                </svg>
+                <div class="ring-center">
+                    <div class="ring-ml"   id="ring-ml">0</div>
+                    <div class="ring-unit" id="ring-unit">bottles</div>
+                    <div class="ring-pct"  id="ring-pct">0%</div>
+                    <div class="ring-goal" id="ring-goal">/ 4 bottles</div>
+                </div>
+            </div>
+
+            <!-- Hydration pacing -->
+            <div class="pace-card" id="pace-card">
+                <span class="pace-icon">💧</span>
+                <span id="pace-text">Calculating pace…</span>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-row stats-row-3">
+                <div class="stat-card">
+                    <div class="stat-label">STREAK</div>
+                    <div class="stat-value accent" id="stat-water-streak">0 days</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">GOAL MET</div>
+                    <div class="stat-value" id="stat-water-month">0 days</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">BEST STREAK</div>
+                    <div class="stat-value green" id="stat-water-best">0 days</div>
+                </div>
+            </div>
+
+            <!-- Weekly summary -->
+            <div class="week-card" id="water-week-card">
+                <div class="week-card-title">This Week</div>
+                <div class="week-grid">
+                    <div class="week-stat">
+                        <div class="week-stat-val green" id="wk-water-avg">—</div>
+                        <div class="week-stat-lbl">Avg / day</div>
+                    </div>
+                    <div class="week-stat">
+                        <div class="week-stat-val" id="wk-water-best-day">—</div>
+                        <div class="week-stat-lbl">Best day</div>
+                    </div>
+                    <div class="week-stat">
+                        <div class="week-stat-val accent" id="wk-water-days-met">—</div>
+                        <div class="week-stat-lbl">Goal days</div>
+                    </div>
+                    <div class="week-stat">
+                        <div class="week-stat-val yellow" id="wk-water-total">—</div>
+                        <div class="week-stat-lbl">Total (L)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Monthly chart -->
+            <div class="chart-card">
+                <div class="chart-top-row">
+                    <div class="month-nav-row">
+                        <button class="month-nav-btn" id="water-prev">‹</button>
+                        <span class="month-nav-title" id="water-month-label"></span>
+                        <button class="month-nav-btn" id="water-next">›</button>
+                    </div>
+                    <div class="view-toggle">
+                        <button class="view-btn active" id="water-bars-btn">Bars</button>
+                        <button class="view-btn"        id="water-heat-btn">Heat</button>
+                    </div>
+                </div>
+                <canvas id="waterChart"></canvas>
+                <canvas id="waterHeatmap"></canvas>
+            </div>
+
+            <div class="neon-divider"></div>
+
+            <div class="section-label">Quick Add</div>
+            <button class="edit-quick-btn" id="edit-quick-btn">✎ Customise Buttons</button>
+            <div class="quick-add-edit" id="quick-add-edit">
+                <div class="qe-field"><span class="qe-label">Btn 1</span><input class="qe-input" id="qe0" type="number" step="0.25" min="0.25" max="10" value="0.5"></div>
+                <div class="qe-field"><span class="qe-label">Btn 2</span><input class="qe-input" id="qe1" type="number" step="0.25" min="0.25" max="10" value="1"></div>
+                <div class="qe-field"><span class="qe-label">Btn 3</span><input class="qe-input" id="qe2" type="number" step="0.25" min="0.25" max="10" value="1.5"></div>
+                <div class="qe-field"><span class="qe-label">Btn 4</span><input class="qe-input" id="qe3" type="number" step="0.25" min="0.25" max="10" value="2"></div>
+            </div>
+            <div class="quick-add" id="quick-add-grid">
+                <button class="add-btn" data-bottles="0.5">
+                    <span>+½</span>
+                    <small class="add-ml" data-for="0.5">250ml</small>
+                </button>
+                <button class="add-btn" data-bottles="1">
+                    <span>+1</span>
+                    <small class="add-ml" data-for="1">500ml</small>
+                </button>
+                <button class="add-btn" data-bottles="1.5">
+                    <span>+1.5</span>
+                    <small class="add-ml" data-for="1.5">750ml</small>
+                </button>
+                <button class="add-btn" data-bottles="2">
+                    <span>+2</span>
+                    <small class="add-ml" data-for="2">1000ml</small>
+                </button>
+            </div>
+
+            <button class="undo-btn" id="undo-water">− Undo last entry</button>
+
+            <div class="section-label" style="margin-top:14px">Custom Amount</div>
+            <div class="custom-row">
+                <input class="cyber-input" id="custom-ml" type="number" min="1" max="5000" placeholder="Enter ml...">
+                <button class="cyber-btn" id="custom-add">ADD</button>
+            </div>
+
+            <div class="neon-divider"></div>
+
+            <div class="section-label">☕ Caffeine</div>
+            <div class="caff-quick">
+                <button class="caff-btn" data-mg="63"  data-name="Espresso"><span>☕</span><small>63mg</small></button>
+                <button class="caff-btn" data-mg="100" data-name="Coffee">  <span>☕</span><small>100mg</small></button>
+                <button class="caff-btn" data-mg="50"  data-name="Tea">     <span>🍵</span><small>50mg</small></button>
+                <button class="caff-btn" data-mg="80"  data-name="Energy">  <span>⚡</span><small>80mg</small></button>
+            </div>
+            <!-- Custom drink presets (populated by JS) -->
+            <div class="caff-quick" id="caff-custom-presets"></div>
+            <div class="custom-row" style="margin-bottom:8px">
+                <input class="cyber-input" id="caff-custom-mg" type="number" min="1" max="1000" placeholder="Custom mg…">
+                <button class="cyber-btn" id="caff-custom-add">ADD</button>
+            </div>
+            <div class="caff-total-row">
+                <span class="caff-total-lbl">TODAY'S CAFFEINE</span>
+                <span>
+                    <span class="caff-total-val" id="caff-total">0mg</span>
+                    <span class="caff-goal-label" id="caff-goal-label"></span>
+                </span>
+            </div>
+            <div class="caff-progress-bar"><div id="caff-progress-fill"></div></div>
+            <div class="caff-warning" id="caff-limit-warning">🚫 You've hit your daily caffeine limit — switch to water!</div>
+            <div class="caff-warning" id="caff-warning">⚠️ Caffeine logged within 6h of your target bedtime — may affect sleep quality.</div>
+            <div class="caff-log" id="caff-log"></div>
+
+            <div class="neon-divider"></div>
+
+            <div class="section-label">Today's Log</div>
+            <div class="log-list" id="water-log"></div>
+        </div>
+
+        <!-- SLEEP PAGE -->
+        <div class="page" id="sleep-page">
+            <div class="page-header">
+                <div class="page-title">Sleep</div>
+            </div>
+
+            <!-- Sleep Ring -->
+            <div class="ring-wrapper">
+                <svg class="water-ring-svg" viewBox="0 0 200 200">
+                    <circle class="ring-bg" cx="100" cy="100" r="82"/>
+                    <circle class="ring-fill ring-fill-sleep" id="sleep-ring-fill" cx="100" cy="100" r="82"
+                        stroke-dasharray="515.22" stroke-dashoffset="515.22"/>
+                </svg>
+                <div class="ring-center">
+                    <div class="ring-ml"   id="sleep-ring-hours">—</div>
+                    <div class="ring-unit">last night</div>
+                    <div class="ring-pct"  id="sleep-ring-pct">0%</div>
+                    <div class="ring-goal">/ 8h goal</div>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-row stats-row-3">
+                <div class="stat-card">
+                    <div class="stat-label">STREAK</div>
+                    <div class="stat-value green" id="stat-sleep-streak">0 days</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">AVG QUALITY</div>
+                    <div class="stat-value" id="stat-sleep-quality">—</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">BEST STREAK</div>
+                    <div class="stat-value accent" id="stat-sleep-best">0 days</div>
+                </div>
+            </div>
+
+            <!-- Weekly sleep summary -->
+            <div class="week-card" id="sleep-week-card">
+                <div class="week-card-title">This Week</div>
+                <div class="week-grid">
+                    <div class="week-stat">
+                        <div class="week-stat-val accent" id="wk-sleep-avg">—</div>
+                        <div class="week-stat-lbl">Avg sleep</div>
+                    </div>
+                    <div class="week-stat">
+                        <div class="week-stat-val" id="wk-sleep-score">—</div>
+                        <div class="week-stat-lbl">Sleep score</div>
+                    </div>
+                    <div class="week-stat">
+                        <div class="week-stat-val yellow" id="wk-sleep-debt">—</div>
+                        <div class="week-stat-lbl">Sleep debt</div>
+                    </div>
+                    <div class="week-stat">
+                        <div class="week-stat-val green" id="wk-sleep-consistency">—</div>
+                        <div class="week-stat-lbl">Consistency</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="neon-divider"></div>
+
+            <!-- Log form -->
+            <div class="sleep-form">
+                <div class="sleep-form-title">LOG SLEEP SESSION</div>
+
+                <!-- Nap timer -->
+                <div class="nap-row">
+                    <button id="nap-timer-btn">▶ START NAP</button>
+                    <span id="nap-display"></span>
+                </div>
+
+                <div class="sleep-form-top-row">
+                    <div class="time-field" style="flex:1">
+                        <label>DATE</label>
+                        <input class="cyber-input" type="date" id="sleep-date">
+                    </div>
+                    <div class="time-field" style="flex:1">
+                        <label>TYPE</label>
+                        <select class="cyber-input cyber-select" id="sleep-type">
+                            <option value="night">Night Sleep</option>
+                            <option value="nap">Nap</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="time-row">
+                    <div class="time-field">
+                        <label>BEDTIME</label>
+                        <input class="cyber-input" type="time" id="bedtime" value="23:00">
+                    </div>
+                    <div class="time-field">
+                        <label>WAKE TIME</label>
+                        <input class="cyber-input" type="time" id="waketime" value="07:00">
+                    </div>
+                </div>
+
+                <div class="sleep-duration" id="sleep-dur">8h 0m</div>
+
+                <div class="quality-label">QUALITY</div>
+                <div class="q-dots" id="q-dots">
+                    <button class="q-dot active" data-v="1"></button>
+                    <button class="q-dot active" data-v="2"></button>
+                    <button class="q-dot active" data-v="3"></button>
+                    <button class="q-dot active" data-v="4"></button>
+                    <button class="q-dot active" data-v="5"></button>
+                </div>
+
+                <div class="quality-label" style="margin-top:10px">NOTES</div>
+                <textarea class="cyber-input" id="sleep-notes" rows="2" placeholder="How did you sleep?"></textarea>
+
+                <div class="quality-label" style="margin-top:10px">TAGS</div>
+                <div class="sleep-tag-row" id="sleep-tag-row">
+                    <button class="tag-chip" data-tag="stressed">😰 Stressed</button>
+                    <button class="tag-chip" data-tag="alcohol">🍺 Alcohol</button>
+                    <button class="tag-chip" data-tag="exercise">🏃 Exercise</button>
+                    <button class="tag-chip" data-tag="hot-room">🌡️ Hot</button>
+                    <button class="tag-chip" data-tag="sick">🤒 Sick</button>
+                    <button class="tag-chip" data-tag="good-day">😊 Good day</button>
+                    <button class="tag-chip" data-tag="travel">✈️ Travel</button>
+                    <button class="tag-chip" data-tag="late-screen">📱 Late screen</button>
+                </div>
+
+                <button class="cyber-btn purple" id="log-sleep" style="width:100%;padding:13px;font-size:13px;margin-top:12px;">
+                    LOG SLEEP
+                </button>
+            </div>
+
+            <div class="section-label">Recent Entries</div>
+            <div class="log-list" id="sleep-log"></div>
+
+            <!-- Sleep chart -->
+            <div class="chart-card" style="margin-top:16px">
+                <div class="chart-top-row">
+                    <div class="month-nav-row">
+                        <button class="month-nav-btn" id="sleep-prev">‹</button>
+                        <span class="month-nav-title" id="sleep-month-label"></span>
+                        <button class="month-nav-btn" id="sleep-next">›</button>
+                    </div>
+                    <div class="view-toggle">
+                        <button class="view-btn active" id="sleep-bars-btn">Bars</button>
+                        <button class="view-btn"        id="sleep-heat-btn">Heat</button>
+                    </div>
+                </div>
+                <canvas id="sleepChart"></canvas>
+                <canvas id="sleepHeatmap"></canvas>
+            </div>
+
+        </div>
+
+    </div><!-- /main-content -->
+</div><!-- /app -->
+
+<!-- SETTINGS MODAL -->
+<div class="overlay" id="settings-overlay">
+    <div class="modal">
+        <div class="modal-title">Settings</div>
+        <button class="modal-close" id="modal-close">✕</button>
+
+        <div class="setting-row">
+            <label>BOTTLE SIZE</label>
+            <div class="preset-row" id="bsize-presets">
+                <button class="preset-btn" data-bsize="330">330ml</button>
+                <button class="preset-btn" data-bsize="500">500ml</button>
+                <button class="preset-btn" data-bsize="600">600ml</button>
+                <button class="preset-btn" data-bsize="750">750ml</button>
+                <button class="preset-btn" data-bsize="1000">1L</button>
+            </div>
+        </div>
+
+        <div class="setting-row" style="margin-top:14px">
+            <label>DAILY GOAL (BOTTLES)</label>
+            <div class="preset-row" id="wgoal-presets">
+                <button class="preset-btn" data-wgoal="2">2</button>
+                <button class="preset-btn" data-wgoal="3">3</button>
+                <button class="preset-btn" data-wgoal="4">4</button>
+                <button class="preset-btn" data-wgoal="5">5</button>
+                <button class="preset-btn" data-wgoal="6">6</button>
+                <button class="preset-btn" data-wgoal="8">8</button>
+            </div>
+        </div>
+
+        <div class="setting-row" style="margin-top:14px">
+            <label>SLEEP GOAL (HOURS)</label>
+            <div class="preset-row" id="sgoal-presets">
+                <button class="preset-btn" data-sgoal="6">6h</button>
+                <button class="preset-btn" data-sgoal="7">7h</button>
+                <button class="preset-btn" data-sgoal="7.5">7.5h</button>
+                <button class="preset-btn" data-sgoal="8">8h</button>
+                <button class="preset-btn" data-sgoal="9">9h</button>
+            </div>
+        </div>
+
+        <div class="neon-divider"></div>
+
+        <div class="setting-row">
+            <label>CHANGE PIN</label>
+            <div style="display:flex;gap:8px">
+                <input class="cyber-input" id="new-pin" type="password" maxlength="4" inputmode="numeric" placeholder="New 4-digit PIN">
+                <button class="cyber-btn pink" id="save-pin">SET</button>
+            </div>
+        </div>
+
+        <div class="neon-divider"></div>
+
+        <div class="setting-row">
+            <label>AIRTABLE TOKEN</label>
+            <input class="cyber-input" id="at-token" type="password" placeholder="pat…" autocomplete="off">
+        </div>
+        <div class="setting-row" style="margin-top:8px">
+            <label>AIRTABLE BASE ID</label>
+            <input class="cyber-input" id="at-base" placeholder="app…" autocomplete="off">
+        </div>
+        <div style="display:flex;gap:8px;margin-top:4px">
+            <button class="cyber-btn" id="save-airtable" style="flex:1;padding:10px">SAVE CONFIG</button>
+            <button class="cyber-btn" id="test-airtable" style="padding:10px 14px">TEST ▶</button>
+        </div>
+
+        <div class="neon-divider"></div>
+
+        <div class="setting-row">
+            <label>SLEEP SCHEDULE</label>
+            <div class="time-grid">
+                <div>
+                    <div style="font-size:10px;color:var(--text-dim);margin-bottom:4px">TARGET BEDTIME</div>
+                    <input class="cyber-input" type="time" id="target-bed" value="23:00">
+                </div>
+                <div>
+                    <div style="font-size:10px;color:var(--text-dim);margin-bottom:4px">TARGET WAKE</div>
+                    <input class="cyber-input" type="time" id="target-wake" value="07:00">
+                </div>
+            </div>
+            <button class="cyber-btn" id="save-schedule" style="width:100%;padding:8px;margin-top:8px;font-size:12px">SAVE SCHEDULE</button>
+        </div>
+
+        <div class="neon-divider"></div>
+
+        <div class="setting-row">
+            <label>HYDRATION REMINDERS</label>
+            <div class="reminder-row">
+                <label>Remind me every</label>
+                <select class="reminder-select cyber-select" id="reminder-interval">
+                    <option value="0">Off</option>
+                    <option value="1">1 hour</option>
+                    <option value="1.5">1.5 hours</option>
+                    <option value="2">2 hours</option>
+                    <option value="3">3 hours</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="neon-divider"></div>
+
+        <div class="setting-row">
+            <label>DAILY CAFFEINE LIMIT</label>
+            <div class="preset-row" id="caffgoal-presets">
+                <button class="preset-btn" data-caffgoal="150">150mg</button>
+                <button class="preset-btn" data-caffgoal="200">200mg</button>
+                <button class="preset-btn" data-caffgoal="300">300mg</button>
+                <button class="preset-btn" data-caffgoal="400">400mg</button>
+            </div>
+        </div>
+
+        <div class="setting-row" style="margin-top:14px">
+            <label>CUSTOM DRINKS</label>
+            <div id="custom-drinks-list" style="margin-bottom:6px"></div>
+            <div style="display:flex;gap:6px">
+                <input class="cyber-input" id="cd-name" placeholder="Name (e.g. My Coffee)" style="flex:2;padding:8px">
+                <input class="cyber-input" id="cd-mg" type="number" min="1" max="2000" placeholder="mg" style="flex:1;padding:8px">
+                <button class="cyber-btn" id="cd-add" style="padding:8px 12px">+</button>
+            </div>
+        </div>
+
+        <div class="neon-divider"></div>
+
+        <button class="cyber-btn" id="open-report" style="width:100%;padding:12px;margin-bottom:8px;">
+            📊 MONTHLY REPORT
+        </button>
+
+        <button class="cyber-btn" id="export-csv" style="width:100%;padding:12px;margin-bottom:8px;">
+            ↓ EXPORT SLEEP CSV
+        </button>
+
+        <div class="neon-divider"></div>
+
+        <div class="setting-row">
+            <label>BACKUP &amp; RESTORE</label>
+            <button class="cyber-btn" id="export-backup" style="width:100%;padding:10px;margin-bottom:8px">↓ EXPORT BACKUP (.json)</button>
+            <label class="cyber-btn restore-label" style="width:100%;padding:10px;text-align:center;cursor:pointer;display:block;margin-bottom:0">
+                ↑ RESTORE BACKUP
+                <input type="file" id="import-backup" accept=".json" style="display:none">
+            </label>
+        </div>
+
+        <div class="neon-divider"></div>
+
+        <button class="cyber-btn pink" id="clear-water" style="width:100%;padding:12px;">
+            CLEAR TODAY'S WATER
+        </button>
+    </div>
+</div>
+
+<!-- REPORT MODAL -->
+<div class="overlay" id="report-overlay">
+    <div class="modal">
+        <div class="modal-title">Monthly Report</div>
+        <button class="modal-close" id="report-close">✕</button>
+        <div class="report-canvas-wrap">
+            <canvas id="report-canvas"></canvas>
+        </div>
+        <button class="cyber-btn green" id="download-report" style="width:100%;padding:12px;margin-top:12px">
+            ↓ DOWNLOAD AS PNG
+        </button>
+    </div>
+</div>
+
+<!-- WEEKLY SUMMARY MODAL -->
+<div class="overlay" id="weekly-overlay">
+    <div class="modal">
+        <div class="modal-title">Weekly Summary</div>
+        <button class="modal-close" id="weekly-close">✕</button>
+        <div class="report-canvas-wrap">
+            <canvas id="weekly-canvas"></canvas>
+        </div>
+        <button class="cyber-btn green" id="download-weekly" style="width:100%;padding:12px;margin-top:12px">
+            ↓ DOWNLOAD AS PNG
+        </button>
+    </div>
+</div>
+
+<div id="toasts"></div>
+<script src="app.js"></script>
+</body>
+</html>
