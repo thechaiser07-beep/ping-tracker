@@ -17,7 +17,7 @@ Go to **https://airtable.com** and sign up for free.
 
 ---
 
-## Step 3 — Create the 3 Tables
+## Step 3 — Create the 4 Tables
 
 You'll set up 3 tables. Airtable starts you with one called "Table 1" — rename and build from there.
 
@@ -50,7 +50,19 @@ Click **"+"** to add a new table, name it **`Sleep`**, then add:
 
 ---
 
-### Table 3 — `Settings`
+### Table 3 — `Caffeine`
+
+Add another table, name it **`Caffeine`**, then add:
+
+| Field Name | Field Type       |
+|------------|-----------------|
+| `Date`     | Single line text ← rename "Name" |
+| `Total`    | Number (integer) |
+| `Entries`  | Long text        |
+
+---
+
+### Table 4 — `Settings`
 
 Add another table, name it **`Settings`**, then add:
 

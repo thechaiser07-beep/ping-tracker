@@ -708,7 +708,7 @@ async function saveWater(entries) {
             if (rec) cacheRec('w_' + S.today, rec.id);
         }
         syncDot('ok');
-    } catch { syncDot('err'); }
+    } catch (e) { syncDot('err'); toast('Water sync: ' + (e?.message || 'check Settings'), true); }
 }
 
 // Add water by bottle count
@@ -786,7 +786,7 @@ async function saveCaff(date) {
             if (rec) cacheRec('c_' + date, rec.id);
         }
         syncDot('ok');
-    } catch { syncDot('err'); }
+    } catch (e) { syncDot('err'); toast('Caffeine sync: ' + (e?.message || 'check Settings'), true); }
 }
 
 function renderCaff() {
@@ -1362,7 +1362,7 @@ document.getElementById('log-sleep').addEventListener('click', async () => {
                 if (rec) cacheRec('s_' + date, rec.id);
             }
             syncDot('ok');
-        } catch { syncDot('err'); }
+        } catch (e) { syncDot('err'); toast('Sleep sync: ' + (e?.message || 'check table fields'), true); }
     }
 
     // Reset form
@@ -2032,6 +2032,19 @@ document.getElementById('save-airtable').addEventListener('click', () => {
     localStorage.setItem('ping_at_token', AT_TOKEN);
     localStorage.setItem('ping_at_base',  AT_BASE);
     toast('Airtable config saved!');
+});
+
+document.getElementById('test-airtable').addEventListener('click', async () => {
+    if (!AT_READY()) { toast('Save your token & base ID first', true); return; }
+    syncDot('busy');
+    try {
+        await atReq('GET', 'Water', '?maxRecords=1');
+        syncDot('ok');
+        toast('✓ Airtable connected!');
+    } catch (e) {
+        syncDot('err');
+        toast('Connection failed: ' + (e?.message || 'unknown error'), true);
+    }
 });
 
 document.getElementById('clear-water').addEventListener('click', async () => {
