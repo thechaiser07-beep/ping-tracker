@@ -2031,8 +2031,12 @@ document.getElementById('reminder-interval').addEventListener('change', e => {
 
 document.getElementById('save-airtable').addEventListener('click', () => {
     const token = document.getElementById('at-token').value.trim();
-    const base  = document.getElementById('at-base').value.trim();
+    let   base  = document.getElementById('at-base').value.trim();
     if (!token || !base) { toast('Enter both token and base ID', true); return; }
+    // Auto-extract base ID if user pasted a full Airtable URL
+    const baseMatch = base.match(/(app[A-Za-z0-9]{14,})/);
+    if (baseMatch) base = baseMatch[1];
+    document.getElementById('at-base').value = base;
     AT_TOKEN = token;
     AT_BASE  = base;
     localStorage.setItem('ping_at_token', AT_TOKEN);
@@ -2043,12 +2047,16 @@ document.getElementById('save-airtable').addEventListener('click', () => {
 document.getElementById('test-airtable').addEventListener('click', async () => {
     if (!AT_READY()) { toast('Save your token & base ID first', true); return; }
     syncDot('busy');
+    const testUrl = `${AT_URL()}/Water?maxRecords=1`;
+    console.log('[PING] Testing Airtable URL:', testUrl);
+    console.log('[PING] Base ID:', AT_BASE, '| Token prefix:', AT_TOKEN.slice(0, 10) + '...');
     try {
         await atReq('GET', 'Water', '?maxRecords=1');
         syncDot('ok');
         toast('✓ Airtable connected!');
     } catch (e) {
         syncDot('err');
+        console.error('[PING] Airtable test failed:', e.message);
         toast('Connection failed: ' + (e?.message || 'unknown error'), true);
     }
 });
