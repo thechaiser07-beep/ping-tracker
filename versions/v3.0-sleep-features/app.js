@@ -171,12 +171,7 @@ const S = {
 
 let viewWY = NOW.getFullYear(), viewWM = NOW.getMonth() + 1;
 let viewSY = NOW.getFullYear(), viewSM = NOW.getMonth() + 1;
-let waterGoalMet    = false; // tracks previous full state for celebration
-let reminderTimer   = null;
-
-// Custom quick-add bottle values (bottles, not ml)
-const QUICK_DEFAULTS = [0.5, 1, 1.5, 2];
-let quickVals = JSON.parse(localStorage.getItem('ping_quick') || 'null') || [...QUICK_DEFAULTS];
+let waterGoalMet = false; // tracks previous full state for celebration
 
 // date → total ml (water) / date → {duration, quality, ...} (sleep)
 const monthWater  = JSON.parse(localStorage.getItem('ping_mw') || '{}');
@@ -223,7 +218,6 @@ async function enterApp() {
     S.sleepLogs = JSON.parse(localStorage.getItem('ping_sleep') || '[]');
 
     applyBottleSettings();
-    renderQuickAdd();
     renderWater();
     updateRing();
     renderWaterStats();
@@ -333,8 +327,12 @@ function applyBottleSettings() {
     localStorage.setItem('ping_bsize', S.bSize);
     localStorage.setItem('ping_wgoal', S.wGoal);
 
-    // Rebuild dynamic quick-add buttons (updates ml labels automatically)
-    renderQuickAdd();
+    // Update quick-add ml labels
+    document.querySelectorAll('.add-ml').forEach(el => {
+        const bottles = parseFloat(el.dataset.for);
+        const ml = Math.round(bottles * S.bSize);
+        el.textContent = ml >= 1000 ? (ml / 1000).toFixed(1) + 'L' : ml + 'ml';
+    });
 
     // Update ring goal text
     document.getElementById('ring-goal').textContent = `/ ${S.wGoal} bottles`;
@@ -567,42 +565,8 @@ document.getElementById('water-log').addEventListener('click', e => {
 
 document.getElementById('undo-water').addEventListener('click', undoLastWater);
 
-// ── Dynamic quick-add buttons ─────────────────────────────────────────────────
-function renderQuickAdd() {
-    const grid = document.getElementById('quick-add-grid');
-    grid.innerHTML = quickVals.map((bottles, i) => {
-        const ml = Math.round(bottles * S.bSize);
-        return `<button class="add-btn" data-bottles="${bottles}" data-qi="${i}">
-            <span>+${bottles % 1 === 0 ? bottles : bottles}</span>
-            <small class="add-ml">${ml >= 1000 ? (ml/1000).toFixed(1)+'L' : ml+'ml'}</small>
-        </button>`;
-    }).join('');
-    grid.querySelectorAll('.add-btn').forEach(b =>
-        b.addEventListener('click', () => addWater(parseFloat(b.dataset.bottles))));
-
-    // Sync edit inputs
-    quickVals.forEach((v, i) => {
-        const inp = document.getElementById('qe' + i);
-        if (inp) inp.value = v;
-    });
-}
-
-// Custom quick-add edit toggle
-document.getElementById('edit-quick-btn').addEventListener('click', () => {
-    const panel = document.getElementById('quick-add-edit');
-    const isOpen = panel.classList.toggle('visible');
-    document.getElementById('edit-quick-btn').textContent = isOpen ? '✓ Done' : '✎ Customise Buttons';
-    if (!isOpen) {
-        // Save on close
-        quickVals = [0,1,2,3].map(i => {
-            const v = parseFloat(document.getElementById('qe'+i).value);
-            return (!isNaN(v) && v > 0) ? v : QUICK_DEFAULTS[i];
-        });
-        localStorage.setItem('ping_quick', JSON.stringify(quickVals));
-        renderQuickAdd();
-        toast('Quick-add buttons updated');
-    }
-});
+document.querySelectorAll('.add-btn[data-bottles]').forEach(b =>
+    b.addEventListener('click', () => addWater(parseFloat(b.dataset.bottles))));
 
 document.getElementById('custom-add').addEventListener('click', () => {
     const v = parseInt(document.getElementById('custom-ml').value);
@@ -1286,89 +1250,12 @@ document.getElementById('sleep-next').addEventListener('click', async () => {
 });
 
 // ════════════════════════════════════════════════════
-//  NAP TIMER
-// ════════════════════════════════════════════════════
-let napStartTime   = null;
-let napClockTimer  = null;
-
-document.getElementById('nap-timer-btn').addEventListener('click', () => {
-    if (!napStartTime) {
-        // Start
-        napStartTime = new Date();
-        // Pre-fill bedtime with now
-        document.getElementById('sleep-date').value = S.today;
-        sleepType = 'nap';
-        document.getElementById('sleep-type').value = 'nap';
-        document.getElementById('bedtime').value =
-            `${pad2(napStartTime.getHours())}:${pad2(napStartTime.getMinutes())}`;
-
-        document.getElementById('nap-timer-btn').textContent = '■ STOP NAP';
-        document.getElementById('nap-timer-btn').classList.add('running');
-
-        napClockTimer = setInterval(() => {
-            const elapsed = Math.floor((Date.now() - napStartTime) / 1000);
-            const m = Math.floor(elapsed / 60), s = elapsed % 60;
-            document.getElementById('nap-display').textContent = `${pad2(m)}:${pad2(s)}`;
-        }, 1000);
-    } else {
-        // Stop — fill wake time and duration
-        const now = new Date();
-        document.getElementById('waketime').value =
-            `${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
-        refreshDur();
-
-        clearInterval(napClockTimer);
-        napStartTime  = null;
-        napClockTimer = null;
-        document.getElementById('nap-timer-btn').textContent = '▶ START NAP';
-        document.getElementById('nap-timer-btn').classList.remove('running');
-        document.getElementById('nap-display').textContent = '';
-        toast('Nap stopped — review and tap LOG SLEEP');
-    }
-});
-
-// ════════════════════════════════════════════════════
-//  CSV EXPORT
-// ════════════════════════════════════════════════════
-document.getElementById('export-csv').addEventListener('click', () => {
-    const allDates = new Set([
-        ...Object.keys(monthWater),
-        ...Object.keys(monthSleep),
-    ]);
-    if (!allDates.size) { toast('No data to export', true); return; }
-
-    const rows = ['Date,Water (ml),Sleep Duration (h),Sleep Quality,Bedtime,Wake Time,Sleep Type,Notes'];
-    [...allDates].sort().forEach(date => {
-        const ml    = monthWater[date] || '';
-        const sl    = monthSleep[date] || {};
-        const notes = (sl.notes || '').replace(/,/g, ';').replace(/\n/g, ' ');
-        rows.push([
-            date, ml,
-            sl.duration || '', sl.quality || '',
-            sl.bedtime  || '', sl.waketime || '',
-            sl.type     || '', notes,
-        ].join(','));
-    });
-
-    const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href = url; a.download = `ping-tracker-${S.today}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast('CSV downloaded!');
-});
-
-// ════════════════════════════════════════════════════
 //  SETTINGS
 // ════════════════════════════════════════════════════
 document.getElementById('settings-btn').addEventListener('click', () => {
     applyBottleSettings();
     document.getElementById('at-token').value = AT_TOKEN;
     document.getElementById('at-base').value  = AT_BASE;
-    // Restore reminder select
-    const savedH = localStorage.getItem('ping_reminder_h') || '0';
-    document.getElementById('reminder-interval').value = savedH;
     document.getElementById('settings-overlay').classList.add('visible');
 });
 
@@ -1386,31 +1273,6 @@ document.getElementById('save-pin').addEventListener('click', async () => {
     await persistPIN(await sha256(v));
     document.getElementById('new-pin').value = '';
     toast('PIN updated!');
-});
-
-// ── Hydration reminders ───────────────────────────────────────────────────────
-function startReminders(hours) {
-    if (reminderTimer) { clearInterval(reminderTimer); reminderTimer = null; }
-    if (!hours || hours <= 0) return;
-    if (!('Notification' in window)) { toast('Notifications not supported', true); return; }
-    Notification.requestPermission().then(perm => {
-        if (perm !== 'granted') { toast('Notification permission denied', true); return; }
-        reminderTimer = setInterval(() => {
-            const bottles = todayBottles();
-            new Notification('💧 Time to drink water!', {
-                body: `You've had ${bottles.toFixed(1)} of ${S.wGoal} bottles today. Keep it up!`,
-                silent: false,
-            });
-        }, hours * 60 * 60 * 1000);
-        localStorage.setItem('ping_reminder_h', hours);
-        toast(`Reminders set every ${hours}h`);
-    });
-}
-
-document.getElementById('reminder-interval').addEventListener('change', e => {
-    const h = parseFloat(e.target.value);
-    startReminders(h);
-    if (!h) { localStorage.removeItem('ping_reminder_h'); toast('Reminders off'); }
 });
 
 document.getElementById('save-airtable').addEventListener('click', () => {
@@ -1474,8 +1336,4 @@ window.addEventListener('resize', () => {
 // ════════════════════════════════════════════════════
 //  BOOT
 // ════════════════════════════════════════════════════
-// Restore hydration reminder if previously set
-const _savedReminderH = parseFloat(localStorage.getItem('ping_reminder_h') || '0');
-if (_savedReminderH > 0) startReminders(_savedReminderH);
-
 bootPIN();

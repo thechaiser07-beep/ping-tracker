@@ -110,7 +110,7 @@
             </div>
 
             <!-- Stats -->
-            <div class="stats-row stats-row-3">
+            <div class="stats-row">
                 <div class="stat-card">
                     <div class="stat-label">STREAK</div>
                     <div class="stat-value accent" id="stat-water-streak">0 days</div>
@@ -119,62 +119,21 @@
                     <div class="stat-label">GOAL MET</div>
                     <div class="stat-value" id="stat-water-month">0 days</div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-label">BEST STREAK</div>
-                    <div class="stat-value green" id="stat-water-best">0 days</div>
-                </div>
-            </div>
-
-            <!-- Weekly summary -->
-            <div class="week-card" id="water-week-card">
-                <div class="week-card-title">This Week</div>
-                <div class="week-grid">
-                    <div class="week-stat">
-                        <div class="week-stat-val green" id="wk-water-avg">—</div>
-                        <div class="week-stat-lbl">Avg / day</div>
-                    </div>
-                    <div class="week-stat">
-                        <div class="week-stat-val" id="wk-water-best-day">—</div>
-                        <div class="week-stat-lbl">Best day</div>
-                    </div>
-                    <div class="week-stat">
-                        <div class="week-stat-val accent" id="wk-water-days-met">—</div>
-                        <div class="week-stat-lbl">Goal days</div>
-                    </div>
-                    <div class="week-stat">
-                        <div class="week-stat-val yellow" id="wk-water-total">—</div>
-                        <div class="week-stat-lbl">Total (L)</div>
-                    </div>
-                </div>
             </div>
 
             <!-- Monthly chart -->
             <div class="chart-card">
-                <div class="chart-top-row">
-                    <div class="month-nav-row">
-                        <button class="month-nav-btn" id="water-prev">‹</button>
-                        <span class="month-nav-title" id="water-month-label"></span>
-                        <button class="month-nav-btn" id="water-next">›</button>
-                    </div>
-                    <div class="view-toggle">
-                        <button class="view-btn active" id="water-bars-btn">Bars</button>
-                        <button class="view-btn"        id="water-heat-btn">Heat</button>
-                    </div>
+                <div class="month-nav-row">
+                    <button class="month-nav-btn" id="water-prev">‹</button>
+                    <span class="month-nav-title" id="water-month-label"></span>
+                    <button class="month-nav-btn" id="water-next">›</button>
                 </div>
                 <canvas id="waterChart"></canvas>
-                <canvas id="waterHeatmap"></canvas>
             </div>
 
             <div class="neon-divider"></div>
 
             <div class="section-label">Quick Add</div>
-            <button class="edit-quick-btn" id="edit-quick-btn">✎ Customise Buttons</button>
-            <div class="quick-add-edit" id="quick-add-edit">
-                <div class="qe-field"><span class="qe-label">Btn 1</span><input class="qe-input" id="qe0" type="number" step="0.25" min="0.25" max="10" value="0.5"></div>
-                <div class="qe-field"><span class="qe-label">Btn 2</span><input class="qe-input" id="qe1" type="number" step="0.25" min="0.25" max="10" value="1"></div>
-                <div class="qe-field"><span class="qe-label">Btn 3</span><input class="qe-input" id="qe2" type="number" step="0.25" min="0.25" max="10" value="1.5"></div>
-                <div class="qe-field"><span class="qe-label">Btn 4</span><input class="qe-input" id="qe3" type="number" step="0.25" min="0.25" max="10" value="2"></div>
-            </div>
             <div class="quick-add" id="quick-add-grid">
                 <button class="add-btn" data-bottles="0.5">
                     <span>+½</span>
@@ -230,7 +189,7 @@
             </div>
 
             <!-- Stats -->
-            <div class="stats-row stats-row-3">
+            <div class="stats-row">
                 <div class="stat-card">
                     <div class="stat-label">STREAK</div>
                     <div class="stat-value green" id="stat-sleep-streak">0 days</div>
@@ -239,33 +198,6 @@
                     <div class="stat-label">AVG QUALITY</div>
                     <div class="stat-value" id="stat-sleep-quality">—</div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-label">BEST STREAK</div>
-                    <div class="stat-value accent" id="stat-sleep-best">0 days</div>
-                </div>
-            </div>
-
-            <!-- Weekly sleep summary -->
-            <div class="week-card" id="sleep-week-card">
-                <div class="week-card-title">This Week</div>
-                <div class="week-grid">
-                    <div class="week-stat">
-                        <div class="week-stat-val accent" id="wk-sleep-avg">—</div>
-                        <div class="week-stat-lbl">Avg sleep</div>
-                    </div>
-                    <div class="week-stat">
-                        <div class="week-stat-val" id="wk-sleep-score">—</div>
-                        <div class="week-stat-lbl">Sleep score</div>
-                    </div>
-                    <div class="week-stat">
-                        <div class="week-stat-val yellow" id="wk-sleep-debt">—</div>
-                        <div class="week-stat-lbl">Sleep debt</div>
-                    </div>
-                    <div class="week-stat">
-                        <div class="week-stat-val green" id="wk-sleep-consistency">—</div>
-                        <div class="week-stat-lbl">Consistency</div>
-                    </div>
-                </div>
             </div>
 
             <div class="neon-divider"></div>
@@ -273,12 +205,6 @@
             <!-- Log form -->
             <div class="sleep-form">
                 <div class="sleep-form-title">LOG SLEEP SESSION</div>
-
-                <!-- Nap timer -->
-                <div class="nap-row">
-                    <button id="nap-timer-btn">▶ START NAP</button>
-                    <span id="nap-display"></span>
-                </div>
 
                 <div class="sleep-form-top-row">
                     <div class="time-field" style="flex:1">
@@ -329,19 +255,12 @@
 
             <!-- Sleep chart -->
             <div class="chart-card" style="margin-top:16px">
-                <div class="chart-top-row">
-                    <div class="month-nav-row">
-                        <button class="month-nav-btn" id="sleep-prev">‹</button>
-                        <span class="month-nav-title" id="sleep-month-label"></span>
-                        <button class="month-nav-btn" id="sleep-next">›</button>
-                    </div>
-                    <div class="view-toggle">
-                        <button class="view-btn active" id="sleep-bars-btn">Bars</button>
-                        <button class="view-btn"        id="sleep-heat-btn">Heat</button>
-                    </div>
+                <div class="month-nav-row">
+                    <button class="month-nav-btn" id="sleep-prev">‹</button>
+                    <span class="month-nav-title" id="sleep-month-label"></span>
+                    <button class="month-nav-btn" id="sleep-next">›</button>
                 </div>
                 <canvas id="sleepChart"></canvas>
-                <canvas id="sleepHeatmap"></canvas>
             </div>
 
         </div>
@@ -401,26 +320,6 @@
         <button class="cyber-btn" id="save-airtable" style="width:100%;padding:10px;margin-top:4px">SAVE AIRTABLE CONFIG</button>
 
         <div class="neon-divider"></div>
-
-        <div class="setting-row">
-            <label>HYDRATION REMINDERS</label>
-            <div class="reminder-row">
-                <label>Remind me every</label>
-                <select class="reminder-select cyber-select" id="reminder-interval">
-                    <option value="0">Off</option>
-                    <option value="1">1 hour</option>
-                    <option value="1.5">1.5 hours</option>
-                    <option value="2">2 hours</option>
-                    <option value="3">3 hours</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="neon-divider"></div>
-
-        <button class="cyber-btn" id="export-csv" style="width:100%;padding:12px;margin-bottom:8px;">
-            EXPORT DATA AS CSV
-        </button>
 
         <button class="cyber-btn pink" id="clear-water" style="width:100%;padding:12px;">
             CLEAR TODAY'S WATER
